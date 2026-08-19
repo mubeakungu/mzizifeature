@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Ticket #{{ ticket.id }} — Admin{% endblock %}
+{% block content %}
+<div style="max-width: 800px; margin: 30px auto; padding: 0 20px;">
+  {% include "admin/_admin_nav.html" %}
+
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+    <h1 style="font-family: var(--font-display); margin: 0; font-size: 1.4rem;">{{ ticket.subject }}</h1>
+    <span class="badge badge-{{ ticket.status }}">{{ ticket.status }}</span>
+  </div>
+  <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 20px;">
+    #{{ ticket.id }} · {{ ticket.user.full_name }} ({{ ticket.user.phone_number }}) · {{ ticket.category|capitalize }}
+  </p>
+
+  {% for m in ticket.messages %}
+  <div class="admin-card" style="{{ 'border-color: var(--gold);' if m.is_staff else '' }} margin-bottom: 10px;">
+    <div style="font-size: 0.75rem; color: var(--text-faint); margin-bottom: 4px;">
+      {{ 'Support' if m.is_staff else m.author.full_name }} · {{ m.created_at.strftime('%d %b %H:%M') }}
+    </div>
+    <div>{{ m.body }}</div>
+  </div>
+  {% endfor %}
+
+  <form method="POST" class="admin-card admin-form">
+    <label>Reply</label>
+    <textarea name="body" required></textarea>
+    <div class="btn-row">
+      <button type="submit" name="reply" value="1" class="btn-gold">Send reply</button>
+    </div>
+  </form>
+
+  <form method="POST" class="admin-card admin-form">
+    <label>Change status</label>
+    <div style="display: flex; gap: 8px;">
+      {% for s in ['open', 'pending', 'resolved', 'closed'] %}
+      <button type="submit" name="set_status" value="{{ s }}"
+              class="{{ 'btn-gold btn-sm' if ticket.status == s else 'btn-outline btn-sm' }}">{{ s|capitalize }}</button>
+      {% endfor %}
+    </div>
+  </form>
+</div>
+{% endblock %}

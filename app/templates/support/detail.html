@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ ticket.subject }} — {{ site_name }}{% endblock %}
+{% block content %}
+<style>
+  .thread-wrap { max-width: 700px; margin: 30px auto; padding: 0 20px; }
+  .badge { padding: 2px 9px; border-radius: 20px; font-size: 0.75rem; }
+  .badge-open, .badge-pending { background: rgba(201,162,39,0.15); color: var(--gold-bright); }
+  .badge-resolved { background: rgba(74,124,89,0.2); color: var(--moss); }
+  .badge-closed { background: rgba(179,58,58,0.15); color: var(--brick); }
+  .msg { padding: 12px 16px; margin-bottom: 10px; border-radius: var(--radius); max-width: 85%; }
+  .msg-user { background: var(--surface); border: 1px solid var(--line); }
+  .msg-staff { background: var(--surface-raised); border: 1px solid var(--gold); margin-left: auto; }
+  .msg-meta { font-size: 0.75rem; color: var(--text-faint); margin-bottom: 4px; }
+  .reply-form textarea {
+    width: 100%; min-height: 90px; padding: 10px 12px; background: var(--bg);
+    border: 1px solid var(--line); border-radius: var(--radius); color: var(--text);
+  }
+</style>
+<div class="thread-wrap">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+    <h1 style="font-family: var(--font-display); margin: 0; font-size: 1.4rem;">{{ ticket.subject }}</h1>
+    <span class="badge badge-{{ ticket.status }}">{{ ticket.status }}</span>
+  </div>
+  <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 20px;">
+    #{{ ticket.id }} · {{ ticket.category|capitalize }} · Opened {{ ticket.created_at.strftime('%d %b %Y') }}
+  </p>
+
+  {% for m in ticket.messages %}
+  <div class="msg {{ 'msg-staff' if m.is_staff else 'msg-user' }}">
+    <div class="msg-meta">{{ 'Support' if m.is_staff else m.author.full_name }} · {{ m.created_at.strftime('%d %b %H:%M') }}</div>
+    <div>{{ m.body }}</div>
+  </div>
+  {% endfor %}
+
+  <form method="POST" class="reply-form" style="margin-top: 20px;">
+    <textarea name="body" placeholder="Write a reply..." required></textarea>
+    <div style="margin-top: 10px;">
+      <button type="submit" class="btn-gold">Send reply</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

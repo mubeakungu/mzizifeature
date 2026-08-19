@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Support — {{ site_name }}{% endblock %}
+{% block content %}
+<style>
+  .badge { padding: 2px 9px; border-radius: 20px; font-size: 0.75rem; }
+  .badge-open, .badge-pending { background: rgba(201,162,39,0.15); color: var(--gold-bright); }
+  .badge-resolved { background: rgba(74,124,89,0.2); color: var(--moss); }
+  .badge-closed { background: rgba(179,58,58,0.15); color: var(--brick); }
+</style>
+<div style="max-width: 800px; margin: 30px auto; padding: 0 20px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1 style="font-family: var(--font-display); margin: 0;">Support Tickets</h1>
+    <a href="{{ url_for('support.new_ticket') }}" class="btn-gold btn-sm">New Ticket</a>
+  </div>
+
+  {% for t in tickets %}
+  <a href="{{ url_for('support.view_ticket', ticket_id=t.id) }}"
+     style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; margin-bottom: 8px;
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);">
+    <div>
+      <div style="font-weight: 600;">{{ t.subject }}</div>
+      <div style="font-size: 0.8rem; color: var(--text-dim);">{{ t.category|capitalize }} · Updated {{ t.updated_at.strftime('%d %b %Y') }}</div>
+    </div>
+    <span class="badge badge-{{ t.status }}">{{ t.status }}</span>
+  </a>
+  {% else %}
+  <p style="color: var(--text-dim);">No tickets yet. If something's wrong, let us know.</p>
+  {% endfor %}
+</div>
+{% endblock %}

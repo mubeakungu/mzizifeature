@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Payment Gateways — Admin{% endblock %}
+{% block content %}
+<div style="max-width: 800px; margin: 30px auto; padding: 0 20px;">
+  {% include "admin/_admin_nav.html" %}
+  <h1 style="font-family: var(--font-display); margin-bottom: 6px;">Payment Gateways</h1>
+  <p style="color: var(--text-dim); margin-bottom: 18px; font-size: 0.85rem;">
+    API credentials live in environment config — this only controls limits and on/off state.
+  </p>
+
+  {% for gw in gateways %}
+  <form method="POST" class="admin-card admin-form">
+    <input type="hidden" name="gateway_id" value="{{ gw.id }}">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="margin: 0;">{{ gw.display_name }} <span class="badge badge-{{ 'active' if gw.is_active else 'closed' }}">{{ gw.direction }}</span></h3>
+      <label style="display: flex; align-items: center; gap: 6px; margin: 0;">
+        <input type="checkbox" name="is_active" {{ 'checked' if gw.is_active }} style="width: auto;"> Active
+      </label>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div><label>Min amount (KES)</label><input type="number" step="0.01" name="min_amount" value="{{ gw.min_amount }}"></div>
+      <div><label>Max amount (KES)</label><input type="number" step="0.01" name="max_amount" value="{{ gw.max_amount }}"></div>
+      <div><label>Flat fee (KES)</label><input type="number" step="0.01" name="fee_flat" value="{{ gw.fee_flat }}"></div>
+      <div><label>Percentage fee (%)</label><input type="number" step="0.01" name="fee_pct" value="{{ gw.fee_pct }}"></div>
+    </div>
+    <div class="btn-row"><button type="submit" class="btn-gold btn-sm">Save {{ gw.display_name }}</button></div>
+  </form>
+  {% endfor %}
+</div>
+{% endblock %}

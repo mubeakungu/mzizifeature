@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}KYC Queue — Admin{% endblock %}
+{% block content %}
+<div style="max-width: 1000px; margin: 30px auto; padding: 0 20px;">
+  {% include "admin/_admin_nav.html" %}
+  <h1 style="font-family: var(--font-display); margin-bottom: 18px;">KYC Review Queue</h1>
+
+  <div style="margin-bottom: 16px; display: flex; gap: 8px;">
+    {% for s in ['pending', 'approved', 'rejected', 'all'] %}
+      <a href="{{ url_for('admin.kyc_queue', status=s) }}"
+         class="{{ 'btn-gold btn-sm' if status == s else 'btn-outline btn-sm' }}">{{ s|capitalize }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="admin-card">
+    <table class="admin-table">
+      <thead><tr><th>ID</th><th>User</th><th>Type</th><th>Submitted</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for doc in docs %}
+        <tr>
+          <td>#{{ doc.id }}</td>
+          <td>{{ doc.user.full_name }} ({{ doc.user.phone_number }})</td>
+          <td>{{ doc.document_type|replace('_',' ')|title }}</td>
+          <td>{{ doc.created_at.strftime('%d %b %Y %H:%M') }}</td>
+          <td><span class="badge badge-{{ doc.status }}">{{ doc.status }}</span></td>
+          <td><a href="{{ url_for('admin.kyc_review', doc_id=doc.id) }}" class="btn-outline btn-sm">Review</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="color: var(--text-dim);">No submissions in this view.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

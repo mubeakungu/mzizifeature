@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Message Templates — Admin{% endblock %}
+{% block content %}
+<div style="max-width: 800px; margin: 30px auto; padding: 0 20px;">
+  {% include "admin/_admin_nav.html" %}
+  <h1 style="font-family: var(--font-display); margin-bottom: 18px;">SMS / Email Templates</h1>
+
+  <div class="admin-card">
+    <table class="admin-table">
+      <thead><tr><th>Code</th><th>Channel</th><th>Preview</th><th></th></tr></thead>
+      <tbody>
+        {% for t in templates %}
+        <tr>
+          <td><code>{{ t.code }}</code></td>
+          <td>{{ t.channel|upper }}</td>
+          <td style="color: var(--text-dim); max-width: 320px;">{{ t.body[:70] }}{{ '…' if t.body|length > 70 }}</td>
+          <td><a href="{{ url_for('admin.template_edit', template_id=t.id) }}" class="btn-outline btn-sm">Edit</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

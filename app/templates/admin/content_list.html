@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Content Pages — Admin{% endblock %}
+{% block content %}
+<div style="max-width: 900px; margin: 30px auto; padding: 0 20px;">
+  {% include "admin/_admin_nav.html" %}
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+    <h1 style="font-family: var(--font-display); margin: 0;">Content Pages</h1>
+    <a href="{{ url_for('admin.content_edit') }}" class="btn-gold btn-sm">New Page</a>
+  </div>
+
+  <div class="admin-card">
+    <table class="admin-table">
+      <thead><tr><th>Slug</th><th>Title</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+      <tbody>
+        {% for p in pages %}
+        <tr>
+          <td><code>/page/{{ p.slug }}</code></td>
+          <td>{{ p.title }}</td>
+          <td><span class="badge badge-{{ 'active' if p.is_published else 'closed' }}">{{ 'Published' if p.is_published else 'Draft' }}</span></td>
+          <td>{{ p.updated_at.strftime('%d %b %Y') }}</td>
+          <td><a href="{{ url_for('admin.content_edit', page_id=p.id) }}" class="btn-outline btn-sm">Edit</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="color: var(--text-dim);">No pages yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

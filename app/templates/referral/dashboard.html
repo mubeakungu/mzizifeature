@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Refer & Earn — {{ site_name }}{% endblock %}
+{% block content %}
+<style>
+  .ref-wrap { max-width: 700px; margin: 30px auto; padding: 0 20px; }
+  .ref-code-box {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 22px; background: var(--surface); border: 1px solid var(--gold);
+    border-radius: var(--radius); margin: 18px 0;
+  }
+  .ref-code-box code { font-family: var(--font-mono); font-size: 1.1rem; color: var(--gold-bright); }
+  .ref-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .ref-stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; text-align: center; }
+  .ref-stat .num { font-family: var(--font-display); font-size: 1.6rem; color: var(--gold-bright); }
+  .ref-stat .label { font-size: 0.8rem; color: var(--text-dim); }
+</style>
+<div class="ref-wrap">
+  <h1 style="font-family: var(--font-display);">Refer & Earn</h1>
+  {% if settings.is_active %}
+    <p style="color: var(--text-dim);">
+      Share your code — earn KES {{ '%.2f'|format(settings.signup_bonus) }} per signup
+      {% if settings.deposit_bonus_pct %}plus {{ settings.deposit_bonus_pct }}% of their first deposit{% endif %}.
+    </p>
+  {% else %}
+    <p style="color: var(--text-dim);">The referral program is currently paused.</p>
+  {% endif %}
+
+  <div class="ref-code-box">
+    <code id="refCode">{{ code }}</code>
+    <button class="btn-outline btn-sm" onclick="navigator.clipboard.writeText('{{ code }}')">Copy</button>
+  </div>
+
+  <div class="ref-stats">
+    <div class="ref-stat"><div class="num">{{ referrals|length }}</div><div class="label">Referrals</div></div>
+    <div class="ref-stat"><div class="num">KES {{ '%.2f'|format(total_earned) }}</div><div class="label">Earned</div></div>
+  </div>
+
+  <h3 style="font-family: var(--font-display); font-size: 1.1rem;">Your Referrals</h3>
+  {% for r in referrals %}
+  <div style="display: flex; justify-content: space-between; padding: 12px 16px; margin-bottom: 6px;
+              background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);">
+    <span>{{ r.referee.full_name }}</span>
+    <span style="color: var(--text-dim); font-size: 0.85rem;">{{ r.created_at.strftime('%d %b %Y') }}</span>
+  </div>
+  {% else %}
+  <p style="color: var(--text-dim);">No referrals yet — share your code above.</p>
+  {% endfor %}
+</div>
+{% endblock %}

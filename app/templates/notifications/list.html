@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Notifications — {{ site_name }}{% endblock %}
+{% block content %}
+<div style="max-width: 700px; margin: 30px auto; padding: 0 20px;">
+  <h1 style="font-family: var(--font-display); margin-bottom: 18px;">Notifications</h1>
+
+  {% for n in items %}
+  <a href="{{ n.url or '#' }}" style="display: block; padding: 14px 18px; margin-bottom: 8px;
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+            {{ 'border-color: var(--gold);' if not n.is_read }}">
+    <div style="font-weight: 600;">{{ n.title }}</div>
+    {% if n.body %}<div style="color: var(--text-dim); font-size: 0.85rem; margin-top: 2px;">{{ n.body }}</div>{% endif %}
+    <div style="color: var(--text-faint); font-size: 0.75rem; margin-top: 6px;">{{ n.created_at.strftime('%d %b %Y %H:%M') }}</div>
+  </a>
+  {% else %}
+  <p style="color: var(--text-dim);">No notifications yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

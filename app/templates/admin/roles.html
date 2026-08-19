@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Roles & Permissions — Admin{% endblock %}
+{% block content %}
+<div style="max-width: 800px; margin: 30px auto; padding: 0 20px;">
+  {% include "admin/_admin_nav.html" %}
+  <h1 style="font-family: var(--font-display); margin-bottom: 18px;">Roles & Permissions</h1>
+
+  {% for role in roles %}
+  <form method="POST" class="admin-card admin-form">
+    <input type="hidden" name="role_id" value="{{ role.id }}">
+    <h3 style="margin: 0 0 4px; text-transform: capitalize;">{{ role.name }}</h3>
+    <p style="color: var(--text-dim); font-size: 0.85rem; margin: 0 0 12px;">{{ role.description }}</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+      {% for perm in all_permissions %}
+      <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; margin: 0;">
+        <input type="checkbox" name="permissions" value="{{ perm }}" style="width: auto;"
+               {{ 'checked' if role.has(perm) }} {{ 'disabled' if role.name == 'ceo' }}>
+        {{ perm }}
+      </label>
+      {% endfor %}
+    </div>
+    {% if role.name != 'ceo' %}
+    <div class="btn-row"><button type="submit" class="btn-gold btn-sm">Save {{ role.name }}</button></div>
+    {% else %}
+    <p style="color: var(--text-faint); font-size: 0.8rem; margin-top: 10px;">CEO always has full access.</p>
+    {% endif %}
+  </form>
+  {% endfor %}
+</div>
+{% endblock %}

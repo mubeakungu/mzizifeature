@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Support — Admin{% endblock %}
+{% block content %}
+<div style="max-width: 1000px; margin: 30px auto; padding: 0 20px;">
+  {% include "admin/_admin_nav.html" %}
+  <h1 style="font-family: var(--font-display); margin-bottom: 18px;">Support Tickets</h1>
+
+  <div style="margin-bottom: 16px; display: flex; gap: 8px;">
+    {% for s in ['open', 'pending', 'resolved', 'closed', 'all'] %}
+      <a href="{{ url_for('admin.support_list', status=s) }}"
+         class="{{ 'btn-gold btn-sm' if status == s else 'btn-outline btn-sm' }}">{{ s|capitalize }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="admin-card">
+    <table class="admin-table">
+      <thead><tr><th>ID</th><th>User</th><th>Subject</th><th>Category</th><th>Updated</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for t in tickets %}
+        <tr>
+          <td>#{{ t.id }}</td>
+          <td>{{ t.user.full_name }}</td>
+          <td>{{ t.subject }}</td>
+          <td>{{ t.category|capitalize }}</td>
+          <td>{{ t.updated_at.strftime('%d %b %H:%M') }}</td>
+          <td><span class="badge badge-{{ t.status }}">{{ t.status }}</span></td>
+          <td><a href="{{ url_for('admin.support_detail', ticket_id=t.id) }}" class="btn-outline btn-sm">Open</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="color: var(--text-dim);">No tickets in this view.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

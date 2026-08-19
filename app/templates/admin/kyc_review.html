@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Review KYC #{{ doc.id }} — Admin{% endblock %}
+{% block content %}
+<div style="max-width: 800px; margin: 30px auto; padding: 0 20px;">
+  {% include "admin/_admin_nav.html" %}
+  <h1 style="font-family: var(--font-display); margin-bottom: 6px;">KYC #{{ doc.id }}</h1>
+  <p style="color: var(--text-dim); margin-bottom: 20px;">
+    {{ doc.user.full_name }} — {{ doc.user.phone_number }} — {{ doc.document_type|replace('_',' ')|title }} #{{ doc.document_number }}
+  </p>
+
+  <div class="admin-card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+    <div>
+      <p style="color: var(--text-dim); font-size: 0.85rem;">ID Front</p>
+      <img src="{{ url_for('static', filename=doc.id_front_path) }}" style="width: 100%; border-radius: var(--radius); border: 1px solid var(--line);">
+    </div>
+    {% if doc.id_back_path %}
+    <div>
+      <p style="color: var(--text-dim); font-size: 0.85rem;">ID Back</p>
+      <img src="{{ url_for('static', filename=doc.id_back_path) }}" style="width: 100%; border-radius: var(--radius); border: 1px solid var(--line);">
+    </div>
+    {% endif %}
+    <div>
+      <p style="color: var(--text-dim); font-size: 0.85rem;">Selfie</p>
+      <img src="{{ url_for('static', filename=doc.selfie_path) }}" style="width: 100%; border-radius: var(--radius); border: 1px solid var(--line);">
+    </div>
+  </div>
+
+  {% if doc.status == 'pending' %}
+  <form method="POST" class="admin-card admin-form">
+    <label>Reject reason (only needed if rejecting)</label>
+    <input type="text" name="reason" placeholder="e.g. ID number doesn't match photo">
+    <div class="btn-row">
+      <button type="submit" name="action" value="approve" class="btn-gold">Approve</button>
+      <button type="submit" name="action" value="reject" class="btn-outline">Reject</button>
+    </div>
+  </form>
+  {% else %}
+  <div class="admin-card">
+    <span class="badge badge-{{ doc.status }}">{{ doc.status }}</span>
+    {% if doc.rejection_reason %}<p style="margin-top: 10px; color: var(--text-dim);">Reason: {{ doc.rejection_reason }}</p>{% endif %}
+    <p style="margin-top: 10px; color: var(--text-dim); font-size: 0.85rem;">
+      Reviewed by {{ doc.reviewer.full_name if doc.reviewer else '—' }} on {{ doc.reviewed_at.strftime('%d %b %Y %H:%M') if doc.reviewed_at else '—' }}
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

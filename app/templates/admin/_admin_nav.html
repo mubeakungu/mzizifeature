@@ -1,0 +1,44 @@
+<style>
+  .admin-nav {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 10px 0 20px; margin-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .admin-nav a {
+    padding: 7px 12px; border-radius: var(--radius);
+    font-size: 0.85rem; color: var(--text-dim);
+    background: var(--surface-raised); border: 1px solid var(--line);
+  }
+  .admin-nav a:hover { color: var(--text); }
+  .admin-nav a.active { color: var(--gold-bright); border-color: var(--gold); }
+  .admin-card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+  }
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .admin-table th, .admin-table td {
+    text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line);
+  }
+  .admin-table th { color: var(--text-dim); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; }
+  .badge { padding: 2px 9px; border-radius: 20px; font-size: 0.75rem; }
+  .badge-pending { background: rgba(201,162,39,0.15); color: var(--gold-bright); }
+  .badge-approved, .badge-open, .badge-active { background: rgba(74,124,89,0.2); color: var(--moss); }
+  .badge-rejected, .badge-closed { background: rgba(179,58,58,0.15); color: var(--brick); }
+  .admin-form label { display: block; font-size: 0.85rem; color: var(--text-dim); margin: 14px 0 6px; }
+  .admin-form input, .admin-form select, .admin-form textarea {
+    width: 100%; padding: 9px 12px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius); color: var(--text); font-family: var(--font-body);
+  }
+  .admin-form textarea { min-height: 140px; }
+  .btn-row { display: flex; gap: 10px; margin-top: 18px; }
+</style>
+<nav class="admin-nav">
+  <a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if request.endpoint == 'admin.dashboard' else '' }}">Dashboard</a>
+  <a href="{{ url_for('admin.kyc_queue') }}" class="{{ 'active' if 'kyc' in request.endpoint else '' }}">KYC</a>
+  <a href="{{ url_for('admin.support_list') }}" class="{{ 'active' if 'support' in request.endpoint else '' }}">Support</a>
+  <a href="{{ url_for('admin.referrals') }}" class="{{ 'active' if request.endpoint == 'admin.referrals' else '' }}">Referrals</a>
+  <a href="{{ url_for('admin.content_list') }}" class="{{ 'active' if 'content' in request.endpoint else '' }}">Content</a>
+  <a href="{{ url_for('admin.templates_list') }}" class="{{ 'active' if 'template' in request.endpoint else '' }}">Templates</a>
+  <a href="{{ url_for('admin.gateways') }}" class="{{ 'active' if request.endpoint == 'admin.gateways' else '' }}">Gateways</a>
+  <a href="{{ url_for('admin.roles') }}" class="{{ 'active' if request.endpoint == 'admin.roles' else '' }}">Roles</a>
+</nav>

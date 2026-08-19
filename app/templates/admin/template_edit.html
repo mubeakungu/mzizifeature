@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Edit Template — Admin{% endblock %}
+{% block content %}
+<div style="max-width: 600px; margin: 30px auto; padding: 0 20px;">
+  {% include "admin/_admin_nav.html" %}
+  <h1 style="font-family: var(--font-display); margin-bottom: 6px;"><code>{{ template.code }}</code></h1>
+  <p style="color: var(--text-dim); margin-bottom: 18px;">Placeholders like {full_name}, {amount}, {reference} are filled in automatically when sent.</p>
+
+  <form method="POST" class="admin-card admin-form">
+    {% if template.channel == 'email' %}
+    <label>Subject</label>
+    <input type="text" name="subject" value="{{ template.subject or '' }}">
+    {% endif %}
+
+    <label>Body</label>
+    <textarea name="body">{{ template.body }}</textarea>
+
+    <div class="btn-row"><button type="submit" class="btn-gold">Save template</button></div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if page else 'New' }} Page — Admin{% endblock %}
+{% block content %}
+<div style="max-width: 700px; margin: 30px auto; padding: 0 20px;">
+  {% include "admin/_admin_nav.html" %}
+  <h1 style="font-family: var(--font-display); margin-bottom: 18px;">{{ 'Edit Page' if page else 'New Page' }}</h1>
+
+  <form method="POST" class="admin-card admin-form">
+    <label>Slug (used as /page/&lt;slug&gt;)</label>
+    <input type="text" name="slug" value="{{ page.slug if page else '' }}" {{ 'readonly' if page }} required>
+
+    <label>Title</label>
+    <input type="text" name="title" value="{{ page.title if page else '' }}" required>
+
+    <label>Body (HTML allowed)</label>
+    <textarea name="body_html" style="min-height: 300px; font-family: var(--font-mono);">{{ page.body_html if page else '' }}</textarea>
+
+    <label><input type="checkbox" name="is_published" {{ 'checked' if not page or page.is_published }} style="width:auto; margin-right:8px;">Published</label>
+
+    <div class="btn-row"><button type="submit" class="btn-gold">Save page</button></div>
+  </form>
+</div>
+{% endblock %}

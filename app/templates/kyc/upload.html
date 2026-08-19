@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Verify your ID — {{ site_name }}{% endblock %}
+{% block content %}
+<style>
+  .kyc-wrap { max-width: 560px; margin: 40px auto; padding: 0 20px; }
+  .kyc-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
+  .kyc-card h1 { font-family: var(--font-display); font-size: 1.5rem; margin: 0 0 6px; }
+  .kyc-card p.lead { color: var(--text-dim); margin: 0 0 22px; font-size: 0.92rem; }
+  .kyc-status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-bottom: 18px; }
+  .kyc-status.approved { background: rgba(74,124,89,0.2); color: var(--moss); }
+  .kyc-status.pending { background: rgba(201,162,39,0.15); color: var(--gold-bright); }
+  .kyc-status.rejected { background: rgba(179,58,58,0.15); color: var(--brick); }
+  .kyc-form label { display: block; font-size: 0.85rem; color: var(--text-dim); margin: 16px 0 6px; }
+  .kyc-form input, .kyc-form select { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); }
+</style>
+<div class="kyc-wrap">
+  <div class="kyc-card">
+    <h1>Identity Verification</h1>
+    <p class="lead">Required before you can withdraw. Takes about a minute.</p>
+
+    {% if verified %}
+      <span class="kyc-status approved">✓ Verified</span>
+      <p>Your identity has been verified. Withdrawals are unlocked.</p>
+    {% else %}
+      {% if latest %}
+        <span class="kyc-status {{ latest.status }}">
+          {{ latest.status|capitalize }}
+        </span>
+        {% if latest.status == 'rejected' %}
+          <p style="color: var(--text-dim); font-size: 0.9rem;">Reason: {{ latest.rejection_reason }} — please resubmit below.</p>
+        {% elif latest.status == 'pending' %}
+          <p style="color: var(--text-dim); font-size: 0.9rem;">Your documents are under review. We'll notify you once processed.</p>
+        {% endif %}
+      {% endif %}
+
+      {% if not latest or latest.status == 'rejected' %}
+      <form method="POST" enctype="multipart/form-data" class="kyc-form">
+        <label>Document type</label>
+        <select name="document_type" required>
+          <option value="national_id">National ID</option>
+          <option value="passport">Passport</option>
+          <option value="drivers_license">Driver's License</option>
+        </select>
+
+        <label>Document number</label>
+        <input type="text" name="document_number" required>
+
+        <label>ID front photo</label>
+        <input type="file" name="id_front" accept="image/*,.pdf" required>
+
+        <label>ID back photo (if applicable)</label>
+        <input type="file" name="id_back" accept="image/*,.pdf">
+
+        <label>Selfie holding your ID</label>
+        <input type="file" name="selfie" accept="image/*" required>
+
+        <div style="margin-top: 22px;">
+          <button type="submit" class="btn-gold">Submit for review</button>
+        </div>
+      </form>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
