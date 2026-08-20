@@ -1,0 +1,18 @@
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Flask-Migrate==4.0.7
+Flask-Bcrypt==1.0.1
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+requests==2.32.3
+gunicorn==22.0.0
+APScheduler==3.10.4
+Flask-SocketIO==5.3.6
+# Gevent for async support (replaces eventlet)
+# Using geventwebsocket with gunicorn for best Flask-SocketIO compatibility
+gevent==24.11.1
+gevent-websocket==0.10.1
+# Optional: Remove eventlet since we're using gevent now
+# If you still need eventlet for other reasons, you can keep it
+# eventlet>=0.40.1
