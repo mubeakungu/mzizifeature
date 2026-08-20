@@ -1,0 +1,614 @@
+{% extends "base.html" %}
+
+{% block title %}Casino — {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="page-with-sidebar">
+<div class="casino-lobby">
+  <!-- Header -->
+  <div class="lobby-header">
+    <h1>Mzizi lobby</h1>
+    <p class="subtitle">Choose your game and start playing</p>
+  </div>
+
+  <!-- Featured Games Slideshow -->
+  {% if featured_games %}
+  <div class="slideshow" id="slideshow">
+    <div class="slideshow-track" id="slideshowTrack">
+      {% for game in featured_games %}
+      <a href="{{ url_for('casino.play', slug=game.slug) }}" class="slide">
+        {% if game.thumbnail_url %}
+          <img src="{{ game.thumbnail_url }}" alt="{{ game.name }}" class="slide-image" loading="lazy">
+        {% else %}
+          <div class="slide-image-placeholder"><span>{{ game.name }}</span></div>
+        {% endif %}
+        <div class="slide-overlay">
+          {% if game.badge %}<span class="slide-badge badge-{{ game.badge|lower }}">{{ game.badge }}</span>{% endif %}
+          <h3 class="slide-name">{{ game.name }}</h3>
+          {% if game.rtp_percent %}<p class="slide-rtp">RTP {{ game.rtp_percent }}%</p>{% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% if featured_games|length > 1 %}
+    <button class="slide-nav slide-prev" id="slidePrev" aria-label="Previous">&#8249;</button>
+    <button class="slide-nav slide-next" id="slideNext" aria-label="Next">&#8250;</button>
+    <div class="slide-dots" id="slideDots">
+      {% for game in featured_games %}
+      <span class="slide-dot {{ 'active' if loop.first else '' }}" data-index="{{ loop.index0 }}"></span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Controls: Category Tabs + Search -->
+  <div class="lobby-controls">
+    <!-- Category Navigation -->
+    <div class="category-tabs">
+      <a href="{{ url_for('casino.lobby', category='all') }}" 
+         class="cat-tab {{ 'active' if active_category == 'all' else '' }}">
+        All Games
+      </a>
+      
+      {% for category in categories %}
+      <a href="{{ url_for('casino.lobby', category=category.slug) }}" 
+         class="cat-tab {{ 'active' if active_category == category.slug else '' }}">
+        {{ category.name }}
+      </a>
+      {% endfor %}
+    </div>
+
+    <!-- Search Box -->
+    <form class="search-box" method="get" action="{{ url_for('casino.lobby') }}">
+      <input type="hidden" name="category" value="{{ active_category }}">
+      <input type="text" 
+             name="q" 
+             placeholder="Search games..." 
+             value="{{ search or '' }}"
+             class="search-input">
+      <button type="submit" class="search-btn">🔍</button>
+    </form>
+  </div>
+
+  <!-- Games Grid -->
+  <div class="game-grid">
+    {% if games %}
+      {% for game in games %}
+      <a href="{{ url_for('casino.play', slug=game.slug) }}" class="game-card">
+        <!-- Game Thumbnail -->
+        <div class="game-thumb">
+          {% if game.badge %}
+            <span class="game-badge badge-{{ game.badge|lower }}">
+              {{ game.badge }}
+            </span>
+          {% endif %}
+          
+          {% if game.thumbnail_url %}
+            <img src="{{ game.thumbnail_url }}" 
+                 alt="{{ game.name }}" 
+                 class="game-image"
+                 loading="lazy"
+                 onerror="this.style.display='none'">
+          {% else %}
+            <div class="game-image-placeholder">
+              <span>{{ game.name }}</span>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Game Info -->
+        <div class="game-meta">
+          <h3 class="game-name">{{ game.name }}</h3>
+          {% if game.rtp_percent %}
+            <p class="game-rtp">RTP {{ game.rtp_percent }}%</p>
+          {% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="no-games">
+        <p>No games match that filter.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% include "_sidebar.html" %}
+</div>
+
+<style>
+/* Casino Lobby Container */
+.casino-lobby {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+/* Header */
+.lobby-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.lobby-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary, #fff);
+}
+
+.lobby-header .subtitle {
+  font-size: 1.1rem;
+  color: var(--text-secondary, #a0a0a0);
+  margin: 0;
+}
+
+/* Slideshow */
+.slideshow {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 2.5rem;
+  aspect-ratio: 21 / 7;
+  background: var(--bg-secondary, #1a1a2e);
+}
+
+@media (max-width: 768px) {
+  .slideshow { aspect-ratio: 4 / 3; }
+}
+
+.slideshow-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.5s ease;
+}
+
+.slide {
+  position: relative;
+  flex: 0 0 100%;
+  height: 100%;
+  text-decoration: none;
+  display: block;
+}
+
+.slide-image, .slide-image-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.slide-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2d2d4a 0%, #3d3d5c 100%);
+}
+
+.slide-image-placeholder span {
+  color: var(--text-secondary, #888);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.slide-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2rem;
+  background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 70%, transparent 100%);
+}
+
+.slide-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.75rem;
+}
+
+.badge-hot { background-color: rgba(239, 68, 68, 0.95); color: #fff; }
+.badge-new { background-color: rgba(245, 158, 11, 0.95); color: #fff; }
+.badge-popular { background-color: rgba(139, 92, 246, 0.95); color: #fff; }
+
+.slide-name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 0.25rem 0;
+}
+
+.slide-rtp {
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.75);
+  margin: 0;
+}
+
+.slide-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  z-index: 2;
+}
+
+.slide-nav:hover { background: rgba(0,0,0,0.75); }
+.slide-prev { left: 16px; }
+.slide-next { right: 16px; }
+
+@media (max-width: 640px) {
+  .slide-nav { display: none; }
+}
+
+.slide-dots {
+  position: absolute;
+  bottom: 1rem;
+  right: 1.5rem;
+  display: flex;
+  gap: 8px;
+  z-index: 2;
+}
+
+.slide-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.slide-dot.active {
+  background: #fff;
+  transform: scale(1.3);
+}
+
+/* Controls Section */
+.lobby-controls {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Category Tabs */
+.category-tabs {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.cat-tab {
+  padding: 0.6rem 1.2rem;
+  background-color: var(--bg-secondary, #1a1a2e);
+  color: var(--text-primary, #fff);
+  border: 1px solid var(--border, #333);
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cat-tab:hover {
+  background-color: var(--primary, #0ea5e9);
+  border-color: var(--primary, #0ea5e9);
+  color: #fff;
+}
+
+.cat-tab.active {
+  background: linear-gradient(135deg, var(--primary, #0ea5e9) 0%, var(--primary-dark, #0284c7) 100%);
+  border-color: var(--primary, #0ea5e9);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Search Box */
+.search-box {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+  min-width: 250px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  background-color: var(--bg-secondary, #1a1a2e);
+  color: var(--text-primary, #fff);
+  border: 1px solid var(--border, #333);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary, #0ea5e9);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.search-input::placeholder {
+  color: var(--text-secondary, #888);
+}
+
+.search-btn {
+  padding: 0.6rem 1rem;
+  background-color: var(--primary, #0ea5e9);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.search-btn:hover {
+  background-color: var(--primary-dark, #0284c7);
+}
+
+/* Responsive Search */
+@media (max-width: 768px) {
+  .lobby-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    margin-left: 0;
+    min-width: auto;
+  }
+
+  .category-tabs {
+    width: 100%;
+  }
+}
+
+/* Game Grid — wider tiles now that thumbnails are landscape */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 1024px) {
+  .game-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .game-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+}
+
+/* Game Card */
+.game-card {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary, #1a1a2e);
+}
+
+.game-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Game Thumbnail — landscape, not portrait */
+.game-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.game-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.game-card:hover .game-image {
+  transform: scale(1.08);
+}
+
+.game-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2d2d4a 0%, #3d3d5c 100%);
+  text-align: center;
+  padding: 1rem;
+}
+
+.game-image-placeholder span {
+  color: var(--text-secondary, #888);
+  font-size: 0.85rem;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+/* Game Badge */
+.game-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Game Meta */
+.game-meta {
+  padding: 0.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.game-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary, #fff);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.game-rtp {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #888);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* No Games State */
+.no-games {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-secondary, #888);
+}
+
+.no-games p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .casino-lobby {
+    background-color: var(--bg-primary, #0f0f1e);
+  }
+
+  .cat-tab {
+    background-color: #2d2d4a;
+    border-color: #444;
+  }
+
+  .search-input {
+    background-color: #2d2d4a;
+    border-color: #444;
+  }
+}
+
+/* Smooth Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.game-card {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Print Styles */
+@media print {
+  .lobby-controls {
+    display: none;
+  }
+
+  .game-card:hover {
+    transform: none;
+  }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const track = document.getElementById('slideshowTrack');
+  if (!track) return; // no featured_games — nothing to animate
+
+  const slides = track.children.length;
+  const dots = document.querySelectorAll('.slide-dot');
+  const prevBtn = document.getElementById('slidePrev');
+  const nextBtn = document.getElementById('slideNext');
+  let index = 0;
+  let autoTimer = null;
+
+  function goTo(i) {
+    index = (i + slides) % slides;
+    track.style.transform = `translateX(-${index * 100}%)`;
+    dots.forEach((d, di) => d.classList.toggle('active', di === index));
+  }
+
+  function next() { goTo(index + 1); }
+  function prev() { goTo(index - 1); }
+
+  function startAuto() {
+    stopAuto();
+    autoTimer = setInterval(next, 5000);
+  }
+  function stopAuto() {
+    if (autoTimer) clearInterval(autoTimer);
+  }
+
+  if (nextBtn) nextBtn.addEventListener('click', (e) => { e.preventDefault(); next(); startAuto(); });
+  if (prevBtn) prevBtn.addEventListener('click', (e) => { e.preventDefault(); prev(); startAuto(); });
+  dots.forEach((dot, i) => dot.addEventListener('click', (e) => { e.preventDefault(); goTo(i); startAuto(); }));
+
+  const slideshow = document.getElementById('slideshow');
+  slideshow.addEventListener('mouseenter', stopAuto);
+  slideshow.addEventListener('mouseleave', startAuto);
+
+  if (slides > 1) startAuto();
+})();
+</script>
+{% endblock %}

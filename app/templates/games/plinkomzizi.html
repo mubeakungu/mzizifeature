@@ -1,0 +1,581 @@
+{% extends "base.html" %}
+
+{% block title %}Plinko Mzizi - Mzizibet{% endblock %}
+
+{% block content %}
+<div class="game-container plinko">
+  
+  <div class="game-header">
+    <h1>🎳 Plinko Mzizi</h1>
+    <p>Drop the ball through pegs. Land in the center for big wins!</p>
+  </div>
+
+  <div class="game-main">
+    
+    <!-- Game Display -->
+    <div class="game-display plinko-display">
+      <div class="metrics">
+        <div class="metric">
+          <label>Round</label>
+          <span id="round" class="value">0</span>
+        </div>
+        <div class="metric">
+          <label>Players</label>
+          <span id="players" class="value">0</span>
+        </div>
+      </div>
+
+      <!-- Plinko Board -->
+      <div class="plinko-board">
+        <canvas id="plinko-canvas"></canvas>
+      </div>
+
+      <!-- Slot Multipliers -->
+      <div class="slot-indicators">
+        <div class="slot" data-slot="0"><span class="mult">0.5x</span></div>
+        <div class="slot" data-slot="1"><span class="mult">1.2x</span></div>
+        <div class="slot" data-slot="2"><span class="mult">1.8x</span></div>
+        <div class="slot" data-slot="3"><span class="mult">2.5x</span></div>
+        <div class="slot center" data-slot="4"><span class="mult">5.0x</span></div>
+        <div class="slot" data-slot="5"><span class="mult">2.5x</span></div>
+        <div class="slot" data-slot="6"><span class="mult">1.8x</span></div>
+        <div class="slot" data-slot="7"><span class="mult">1.2x</span></div>
+        <div class="slot" data-slot="8"><span class="mult">0.5x</span></div>
+      </div>
+
+      <!-- Status -->
+      <div class="game-status">
+        <span id="status" class="status-text">Drop the ball!</span>
+      </div>
+    </div>
+
+    <!-- Betting Panel -->
+    <div class="betting-panel">
+      <h2>Place Bet</h2>
+
+      <div class="balance-box">
+        <span>Balance</span>
+        <span id="balance" class="balance-amount">0 KES</span>
+      </div>
+
+      <div class="form-group">
+        <label>Bet Amount</label>
+        <input type="number" id="bet-amount" placeholder="100" min="10" max="10000" class="input-field">
+      </div>
+
+      <div class="presets">
+        <button class="preset" data-amount="100">100</button>
+        <button class="preset" data-amount="500">500</button>
+        <button class="preset" data-amount="1000">1K</button>
+        <button class="preset" data-amount="5000">5K</button>
+      </div>
+
+      <button id="bet-btn" class="btn btn-bet" disabled>Drop Ball</button>
+
+      <div class="info-box">
+        <h4>Multiplier Guide</h4>
+        <div class="mult-guide">
+          <div>🟨 0.5x - Edges (Risky)</div>
+          <div>🟩 1.2x - Near Edges</div>
+          <div>🟦 1.8x - Middle Area</div>
+          <div>🟪 2.5x - High Middle</div>
+          <div>🟥 5.0x - CENTER (Best!)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <h3>Recent Drops</h3>
+      <div id="recent-bets" class="bets-list">
+        <p class="empty">No bets yet</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <h3>Your Stats</h3>
+      <div class="stats-grid">
+        <div class="stat">
+          <span class="label">Wagered</span>
+          <span id="stat-wagered" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Winnings</span>
+          <span id="stat-won" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Drops</span>
+          <span id="stat-wins" class="value">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+<style>
+.plinko {
+  --primary: #ec4899;
+  --center: #ec4899;
+  --edge: #8b7355;
+}
+
+.plinko-display {
+  background: linear-gradient(135deg, #2d1b4e 0%, #4a1a6f 50%, #6d2883 100%);
+  border: 2px solid #ec4899;
+  box-shadow: 0 0 30px rgba(236, 72, 153, 0.3);
+}
+
+.plinko-board {
+  position: relative;
+  width: 100%;
+  height: 350px;
+  background: linear-gradient(135deg, #1f1438 0%, #3d2660 100%);
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  overflow: hidden;
+  border: 2px solid rgba(236, 72, 153, 0.3);
+}
+
+#plinko-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.slot-indicators {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 0.5rem;
+  padding: 1rem 0;
+  margin-bottom: 1rem;
+}
+
+.slot {
+  padding: 0.75rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(236, 72, 153, 0.3);
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.slot.center {
+  background: rgba(236, 72, 153, 0.2);
+  border-color: #ec4899;
+  box-shadow: 0 0 16px rgba(236, 72, 153, 0.4);
+}
+
+.slot.center .mult {
+  color: #ff69b4;
+  font-weight: 900;
+}
+
+.slot.active {
+  background: rgba(236, 72, 153, 0.4);
+  border-color: #ec4899;
+  box-shadow: 0 0 12px rgba(236, 72, 153, 0.6);
+}
+
+.slot .mult {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #a0a0a0;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.metric {
+  text-align: center;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+}
+
+.metric label {
+  display: block;
+  font-size: 0.8rem;
+  color: #a0a0a0;
+  margin-bottom: 0.5rem;
+}
+
+.metric .value {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #ec4899;
+}
+
+.game-status {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(236, 72, 153, 0.2);
+  border-radius: 6px;
+  border: 1px solid rgba(236, 72, 153, 0.5);
+}
+
+.status-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ec4899;
+}
+
+.status-text.dropping {
+  color: #fbbf24;
+  animation: pulse 0.5s infinite;
+}
+
+.status-text.landed {
+  color: #10b981;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.btn-bet {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  border: none;
+  padding: 1rem;
+  width: 100%;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-bet:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(236, 72, 153, 0.4);
+}
+
+.btn-bet:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.preset {
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.preset:hover {
+  background: #ec4899;
+  border-color: #ec4899;
+}
+
+.info-box {
+  background: rgba(236, 72, 153, 0.1);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1.5rem;
+}
+
+.info-box h4 {
+  color: #ec4899;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.mult-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #a0a0a0;
+  line-height: 1.5;
+}
+
+.bets-list {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+}
+
+.bet-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  border-left: 3px solid #ec4899;
+}
+
+.bet-item .value {
+  font-weight: 700;
+  color: #10b981;
+}
+</style>
+
+<script>
+const MULTIPLIERS = [0.5, 1.2, 1.8, 2.5, 5.0, 2.5, 1.8, 1.2, 0.5];
+const PEGS = [];
+const SLOTS = [];
+
+const canvas = document.getElementById('plinko-canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  
+  // Generate pegs
+  generatePegs();
+  generateSlots();
+}
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function generatePegs() {
+  PEGS.length = 0;
+  const rows = 10;
+  const cols = 7;
+  const spacing = canvas.width / (cols + 1);
+  const vertSpacing = (canvas.height - 80) / rows;
+  
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const offset = (row % 2) * (spacing / 2);
+      PEGS.push({
+        x: spacing * (col + 1) + offset,
+        y: vertSpacing * (row + 0.5),
+        r: 4
+      });
+    }
+  }
+}
+
+function generateSlots() {
+  SLOTS.length = 0;
+  const slotWidth = canvas.width / 9;
+  for (let i = 0; i < 9; i++) {
+    SLOTS.push({
+      x: (i + 0.5) * slotWidth,
+      y: canvas.height - 30,
+      width: slotWidth - 4,
+      height: 40
+    });
+  }
+}
+
+let ball = null;
+
+class Ball {
+  constructor() {
+    this.x = canvas.width / 2;
+    this.y = 20;
+    this.vx = 0;
+    this.vy = 0;
+    this.r = 6;
+    this.landed = null;
+  }
+  
+  update() {
+    this.vy += 0.4; // Gravity
+    this.x += this.vx;
+    this.y += this.vy;
+    
+    // Collide with pegs
+    for (let peg of PEGS) {
+      const dx = this.x - peg.x;
+      const dy = this.y - peg.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < this.r + peg.r) {
+        const angle = Math.atan2(dy, dx);
+        this.x = peg.x + Math.cos(angle) * (this.r + peg.r);
+        this.y = peg.y + Math.sin(angle) * (this.r + peg.r);
+        
+        this.vx = Math.cos(angle) * 3;
+        this.vy = Math.sin(angle) * 3;
+      }
+    }
+    
+    // Check slot landing
+    for (let i = 0; i < SLOTS.length; i++) {
+      const slot = SLOTS[i];
+      if (this.y + this.r > slot.y &&
+          this.x > slot.x - slot.width / 2 &&
+          this.x < slot.x + slot.width / 2) {
+        this.landed = i;
+        this.vy = 0;
+        this.vx = 0;
+        return false;
+      }
+    }
+    
+    return this.y < canvas.height;
+  }
+  
+  draw() {
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowColor = 'rgba(251, 191, 36, 0.8)';
+    ctx.shadowBlur = 16;
+  }
+}
+
+function drawBoard() {
+  ctx.fillStyle = 'rgba(31, 20, 56, 0.5)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw pegs
+  ctx.fillStyle = '#a1a1a1';
+  ctx.shadowColor = 'rgba(161, 161, 161, 0.4)';
+  ctx.shadowBlur = 4;
+  for (let peg of PEGS) {
+    ctx.beginPath();
+    ctx.arc(peg.x, peg.y, peg.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Draw slots
+  ctx.shadowColor = 'transparent';
+  for (let i = 0; i < SLOTS.length; i++) {
+    const slot = SLOTS[i];
+    const color = i === 4 ? 'rgba(236, 72, 153, 0.3)' : 'rgba(100, 100, 150, 0.2)';
+    ctx.fillStyle = color;
+    ctx.fillRect(slot.x - slot.width / 2, slot.y, slot.width, slot.height);
+    
+    ctx.strokeStyle = i === 4 ? '#ec4899' : 'rgba(236, 72, 153, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(slot.x - slot.width / 2, slot.y, slot.width, slot.height);
+  }
+}
+
+function animate() {
+  drawBoard();
+  
+  if (ball && ball.update()) {
+    ball.draw();
+    requestAnimationFrame(animate);
+  } else if (ball && ball.landed !== null) {
+    ball.draw();
+  }
+}
+
+const gameState = {
+  round: 0,
+  activeBet: null,
+  landedSlot: null
+};
+
+const socket = io('/plinko-mzizi');
+
+socket.on('connect', () => {
+  socket.emit('join_game');
+});
+
+socket.on('new_round', (data) => {
+  gameState.round = data.round_number;
+  gameState.activeBet = null;
+  gameState.landedSlot = null;
+  ball = null;
+  
+  document.getElementById('round').textContent = gameState.round;
+  document.getElementById('status').textContent = '🎳 Ready to drop!';
+  document.getElementById('status').className = 'status-text';
+  document.getElementById('bet-btn').disabled = false;
+  
+  document.querySelectorAll('.slot.active').forEach(s => s.classList.remove('active'));
+  drawBoard();
+});
+
+socket.on('ball_drop', (data) => {
+  ball = new Ball();
+  document.getElementById('status').textContent = '⭐ Ball dropping...';
+  document.getElementById('status').className = 'status-text dropping';
+  animate();
+});
+
+socket.on('ball_landed', (data) => {
+  gameState.landedSlot = data.slot;
+  document.getElementById('status').textContent = `🎉 Landed in slot ${data.slot + 1}! ${data.multiplier}x`;
+  document.getElementById('status').className = 'status-text landed';
+  
+  document.querySelectorAll('.slot')[data.slot].classList.add('active');
+});
+
+socket.on('player_joined', (data) => {
+  document.getElementById('players').textContent = data.players;
+});
+
+document.getElementById('bet-btn').addEventListener('click', async () => {
+  const amount = parseFloat(document.getElementById('bet-amount').value);
+  if (!amount) return;
+  
+  const res = await fetch('/plinko-mzizi/api/bet', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount })
+  });
+  
+  const data = await res.json();
+  if (data.success) {
+    gameState.activeBet = data.bet_id;
+    document.getElementById('bet-amount').value = '';
+    document.getElementById('bet-btn').disabled = true;
+  }
+});
+
+document.querySelectorAll('.preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('bet-amount').value = btn.dataset.amount;
+  });
+});
+
+fetch('/plinko-mzizi/api/stats')
+  .then(r => r.json())
+  .then(s => {
+    document.getElementById('stat-wagered').textContent = s.total_wagered.toLocaleString();
+    document.getElementById('stat-won').textContent = s.total_won.toLocaleString();
+    document.getElementById('stat-wins').textContent = s.win_count;
+  });
+
+fetch('/plinko-mzizi/api/history?limit=10')
+  .then(r => r.json())
+  .then(bets => {
+    const list = document.getElementById('recent-bets');
+    if (bets.length) {
+      list.innerHTML = bets.map(b => `
+        <div class="bet-item">
+          <span>Slot ${b.slot + 1} - ${b.amount} KES</span>
+          <span class="value">${b.multiplier}x</span>
+        </div>
+      `).join('');
+    }
+  });
+
+drawBoard();
+</script>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Access restricted — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="auth-shell">
+  <h1>Access restricted</h1>
+  <p style="color:var(--text-dim);">{{ reason }}</p>
+  <a href="{{ url_for('casino.lobby') }}" class="btn-outline auth-submit" style="text-align:center;display:block;">Back to lobby</a>
+</div>
+{% endblock %}

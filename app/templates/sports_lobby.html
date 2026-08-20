@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+{% block title %}Sports Betting — {{ site_name }}{% endblock %}
+{% block content %}
+
+<div class="lobby-header">
+  <h1>Sports Betting</h1>
+  <p>Browse upcoming fixtures and place your bets</p>
+</div>
+
+<div class="lobby-controls">
+  <a href="{{ url_for('sports.live_fixtures') }}" class="sport-tab">
+    🔴 Live Now {% if live_count %}({{ live_count }}){% endif %}
+  </a>
+
+  <button onclick="filterSport('all')" class="sport-tab {{ 'active' if active_sport == 'all' else '' }}" data-sport="all">
+    All Sports
+  </button>
+  {% for sport in sports %}
+  <button onclick="filterSport('{{ sport|lower }}')" class="sport-tab {{ 'active' if active_sport == sport else '' }}" data-sport="{{ sport|lower }}">
+    {{ sport }}
+  </button>
+  {% endfor %}
+</div>
+
+<form method="get" action="{{ url_for('sports.lobby') }}" class="search-box" style="margin-bottom: 20px;">
+  <input type="hidden" name="sport" value="{{ active_sport }}">
+  <input type="text" name="q" placeholder="Search teams..." value="{{ search or '' }}">
+  <button type="submit">🔍</button>
+</form>
+
+{% if upcoming_events %}
+<div class="fixtures-grid" id="fixturesGrid">
+  {% for event in upcoming_events %}
+  <div class="fixture-card" data-event-id="{{ event.id }}" data-sport="{{ event.sport|lower }}">
+    <div class="fixture-header">
+      <span class="sport-badge {{ event.sport|lower }}">{{ event.sport|upper }}</span>
+      <span class="event-time">{{ event.event_time.strftime('%d %b, %H:%M') }}</span>
+    </div>
+
+    <div class="matchup">
+      <div class="team home">
+        <div class="team-name">{{ event.home_team }}</div>
+      </div>
+
+      <div class="vs-divider">
+        <span class="vs-text">vs</span>
+      </div>
+
+      <div class="team away">
+        <div class="team-name">{{ event.away_team }}</div>
+      </div>
+    </div>
+
+    {% if event.markets %}
+    <div class="odds-container">
+      {% for market in event.markets %}
+        {% if market.selections %}
+        <div class="market">
+          {% for selection in market.selections %}
+          <button onclick="openBetModal({{ event.id }}, {{ selection.id }}, '{{ event.home_team }}', '{{ event.away_team }}', {{ selection.odds }}, '{{ selection.name }}')"
+                  class="odd-btn">
+            <div class="odd-team">{{ selection.name }}</div>
+            <div class="odd-value">{{ "%.2f"|format(selection.odds) }}</div>
+          </button>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="border-top: 1px solid var(--border-color); padding: 10px;">
+      <a href="{{ url_for('sports.event_detail', event_id=event.id) }}" class="view-more-btn" style="display: block; text-align: center;">
+        View More Markets →
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state">
+  <p style="color: var(--text-faint); font-size: 16px; margin-top: 40px;">
+    ℹ️ No upcoming fixtures match your filters right now.
+  </p>
+</div>
+{% endif %}
+
+<!-- Bet Modal -->
+<div id="betModal" class="bet-modal">
+  <div class="bet-modal-content">
+    <div class="bet-modal-header">
+      <h2>Place Bet</h2>
+      <button onclick="closeBetModal()" class="close-btn">&times;</button>
+    </div>
+
+    <form id="betForm" method="POST" onsubmit="submitBet(event)">
+      <input type="hidden" id="modalEventId" name="event_id">
+      <input type="hidden" id="modalSelectionId" name="selection_id">
+
+      <div class="modal-form-group">
+        <label>Match</label>
+        <input type="text" id="matchDisplay" readonly disabled>
+      </div>
+
+      <div class="modal-form-group">
+        <label>Selection</label>
+        <input type="text" id="selectionDisplay" readonly disabled>
+      </div>
+
+      <div class="modal-form-group">
+        <label>Odds</label>
+        <input type="text" id="oddsDisplay" readonly disabled>
+      </div>
+
+      <div class="modal-form-group">
+        <label for="betAmount">Stake (KES)</label>
+        <input type="number" id="betAmount" name="amount" min="100" step="50"
+               placeholder="Enter amount" required>
+        {% if current_user.is_authenticated %}
+        <small style="color: var(--text-faint); display: block; margin-top: 5px;">
+          Your balance: KES {{ '%.2f'|format(current_user.wallet.balance) }}
+        </small>
+        {% endif %}
+      </div>
+
+      <div class="modal-form-group">
+        <label>Potential Payout</label>
+        <div class="payout-display">KES <span id="potentialPayout">0.00</span></div>
+      </div>
+
+      <button type="submit" class="place-bet-btn">Place Bet Now</button>
+    </form>
+  </div>
+</div>
+
+<style>
+.fixtures-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.fixture-card {
+  background: var(--surface, var(--bg-secondary));
+  border: 1px solid var(--line, var(--border-color));
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.fixture-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line, var(--border-color));
+}
+
+.sport-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 5px;
+  text-transform: uppercase;
+  background: var(--surface-raised, rgba(255,255,255,0.06));
+  color: var(--gold-bright, var(--accent-gold));
+}
+
+.event-time {
+  font-size: 12px;
+  color: var(--text-faint);
+  font-family: var(--font-mono, monospace);
+}
+
+.matchup {
+  padding: 18px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.team { flex: 1; text-align: center; }
+.team-name { font-size: 0.9rem; font-weight: 600; }
+.vs-divider { color: var(--text-faint); font-size: 0.8rem; }
+
+.odds-container { padding: 0 14px 14px; }
+.market {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 8px;
+}
+.odd-btn {
+  background: var(--surface-raised, rgba(255,255,255,0.05));
+  border: 1px solid var(--line, var(--border-color));
+  border-radius: 7px;
+  padding: 8px 4px;
+  text-align: center;
+  cursor: pointer;
+  color: inherit;
+}
+.odd-btn:hover { border-color: var(--gold, var(--accent-gold)); }
+.odd-team { font-size: 0.68rem; color: var(--text-faint); margin-bottom: 3px; }
+.odd-value { font-family: var(--font-mono, monospace); font-weight: 700; color: var(--gold-bright, var(--accent-gold)); }
+
+.view-more-btn {
+  color: var(--gold-bright, var(--accent-gold));
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.view-more-btn:hover { text-decoration: underline; }
+
+.empty-state { text-align: center; }
+
+/* Modal styles (shared with live template) */
+.bet-modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.bet-modal.show { display: flex; }
+.bet-modal-content {
+  background: var(--surface, var(--bg-secondary));
+  border: 1px solid var(--line, var(--border-color));
+  border-radius: 12px;
+  padding: 25px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.bet-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line, var(--border-color));
+  padding-bottom: 15px;
+}
+.bet-modal-header h2 { margin: 0; font-size: 20px; }
+.close-btn {
+  background: none; border: none; color: var(--text-primary, var(--text));
+  font-size: 28px; cursor: pointer; padding: 0;
+  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+}
+.close-btn:hover { color: var(--gold-bright, var(--accent-gold)); }
+.modal-form-group { margin-bottom: 15px; }
+.modal-form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; }
+.modal-form-group input {
+  width: 100%; padding: 10px 12px;
+  border: 1px solid var(--line, var(--border-color));
+  border-radius: 6px;
+  background: var(--bg, var(--bg-primary));
+  color: var(--text, var(--text-primary));
+  font-size: 14px;
+}
+.modal-form-group input:focus {
+  outline: none; border-color: var(--gold, var(--accent-gold));
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.15);
+}
+.modal-form-group input:disabled { background: rgba(0,0,0,0.2); cursor: not-allowed; }
+.payout-display {
+  padding: 12px;
+  background: rgba(201, 162, 39, 0.1);
+  border: 1px solid rgba(201, 162, 39, 0.3);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gold-bright, var(--accent-gold));
+}
+.place-bet-btn {
+  width: 100%; padding: 12px;
+  background: var(--gold, var(--accent-gold));
+  color: #171100;
+  border: none; border-radius: 8px;
+  font-weight: 700; font-size: 14px; cursor: pointer;
+  margin-top: 10px;
+}
+.place-bet-btn:hover { opacity: 0.9; }
+
+@media (max-width: 768px) {
+  .fixtures-grid { grid-template-columns: 1fr; }
+  .bet-modal-content { padding: 20px; max-width: 100%; max-height: 80vh; }
+}
+</style>
+
+<script>
+function filterSport(sport) {
+  document.querySelectorAll('.sport-tab[data-sport]').forEach(btn => btn.classList.remove('active'));
+  if (event && event.target) event.target.classList.add('active');
+
+  document.querySelectorAll('.fixture-card').forEach(card => {
+    card.style.display = (sport === 'all' || card.dataset.sport === sport) ? '' : 'none';
+  });
+}
+
+function openBetModal(eventId, selectionId, homeTeam, awayTeam, odds, selectionName) {
+  if (!{{ 'true' if current_user.is_authenticated else 'false' }}) {
+    window.location.href = '{{ url_for("auth.login") }}';
+    return;
+  }
+
+  document.getElementById('modalEventId').value = eventId;
+  document.getElementById('matchDisplay').value = `${homeTeam} vs ${awayTeam}`;
+
+  if (selectionId) {
+    document.getElementById('modalSelectionId').value = selectionId;
+    document.getElementById('selectionDisplay').value = selectionName || '';
+    document.getElementById('oddsDisplay').value = odds ? Number(odds).toFixed(2) : '';
+  } else {
+    document.getElementById('modalSelectionId').value = '';
+    document.getElementById('selectionDisplay').value = 'Select from odds above';
+    document.getElementById('oddsDisplay').value = '';
+  }
+
+  document.getElementById('betAmount').value = '';
+  document.getElementById('potentialPayout').textContent = '0.00';
+  document.getElementById('betModal').classList.add('show');
+}
+
+function closeBetModal() {
+  document.getElementById('betModal').classList.remove('show');
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  const amountInput = document.getElementById('betAmount');
+  if (amountInput) {
+    amountInput.addEventListener('input', function () {
+      const amount = parseFloat(this.value) || 0;
+      const odds = parseFloat(document.getElementById('oddsDisplay').value) || 0;
+      document.getElementById('potentialPayout').textContent = (amount * odds).toFixed(2);
+    });
+  }
+});
+
+document.getElementById('betModal')?.addEventListener('click', function (e) {
+  if (e.target === this) closeBetModal();
+});
+
+function submitBet(e) {
+  e.preventDefault();
+  const eventId = document.getElementById('modalEventId').value;
+  const selectionId = document.getElementById('modalSelectionId').value;
+  const amount = document.getElementById('betAmount').value;
+
+  if (!selectionId) { alert('Please select an odd first'); return; }
+  if (!amount || amount < 100) { alert('Minimum bet is KES 100'); return; }
+
+  const form = document.getElementById('betForm');
+  form.action = `/sports/place-bet/${eventId}`;
+  form.submit();
+}
+</script>
+{% endblock %}

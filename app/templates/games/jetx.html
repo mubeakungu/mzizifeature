@@ -1,0 +1,729 @@
+{% extends "base.html" %}
+
+{% block title %}JetX — Summit Stakes{% endblock %}
+
+{% block content %}
+<style>
+  :root {
+    --cg-bg: #0b0d10;
+    --panel: #14171c;
+    --panel-2: #1b1f26;
+    --line: #262b33;
+    --text: #f2f2f2;
+    --text-faint: #8a8f98;
+    --accent: #5FB3D9;
+    --accent-2: #3f8fb3;
+    --rise: #3FAE7A;
+    --fall: #e0574b;
+  }
+
+  .content {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+    color: var(--text);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .crumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-faint);
+    font-size: 14px;
+    margin-bottom: 18px;
+    width: fit-content;
+  }
+  .crumb:hover { color: var(--text); }
+  .crumb .back { font-size: 16px; }
+
+  .crash-stage {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+  }
+
+  .stage-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .fairness-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  .fairness-note .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--rise);
+    box-shadow: 0 0 0 0 rgba(63,174,122,0.6);
+    animation: pulseDot 1.8s infinite;
+  }
+  @keyframes pulseDot {
+    0% { box-shadow: 0 0 0 0 rgba(63,174,122,0.5); }
+    70% { box-shadow: 0 0 0 6px rgba(63,174,122,0); }
+    100% { box-shadow: 0 0 0 0 rgba(63,174,122,0); }
+  }
+  .sound-toggle {
+    cursor: pointer;
+    font-size: 16px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+  }
+  .sound-toggle.muted { opacity: 0.5; }
+
+  .round-history {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    min-height: 30px;
+  }
+  .round-chip {
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--panel-2);
+    color: var(--text-faint);
+    border: 1px solid var(--line);
+  }
+  .round-chip.mid { color: var(--accent); border-color: rgba(95,179,217,0.4); }
+  .round-chip.high { color: #F2A65A; border-color: rgba(242,166,90,0.4); }
+  .round-chip.huge { color: #fff; background: linear-gradient(45deg, var(--accent), var(--fall)); border-color: transparent; }
+
+  .crash-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .gname { font-size: 1.3rem; font-weight: 700; }
+  .crash-status {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(63,174,122,0.15);
+    color: var(--rise);
+  }
+  .crash-status.crashed { background: rgba(224,87,75,0.15); color: var(--fall); }
+
+  .crash-multiplier {
+    text-align: center;
+    font-size: 3rem;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    margin: 6px 0 10px;
+    color: var(--text);
+  }
+  .crash-multiplier.crashed { color: var(--fall); }
+
+  .crash-track {
+    position: relative;
+    background: radial-gradient(circle at 50% 100%, rgba(95,179,217,0.08), transparent 60%), #0e1015;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    height: 280px;
+    overflow: hidden;
+    margin-bottom: 22px;
+  }
+  .crash-track svg { width: 100%; height: 100%; display: block; }
+  #planeIcon.hidden { display: none; }
+  .crash-explosion {
+    font-size: 26px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .crash-explosion.show { opacity: 1; }
+
+  .bet-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .bet-panel {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .bet-panel-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    background: var(--cg-bg, #0b0d10);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .bet-panel-tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-faint);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .bet-panel-tab.active { background: var(--panel); color: var(--text); }
+
+  .stake-stepper {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .stake-stepper button {
+    width: 38px;
+    background: var(--panel);
+    border: none;
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+  }
+  .stake-stepper button:hover { background: var(--line); }
+  .stake-stepper input {
+    flex: 1;
+    text-align: center;
+    background: var(--panel);
+    border: none;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 8px 4px;
+  }
+  .stake-stepper input:focus { outline: none; }
+
+  .stake-quick {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .stake-quick div {
+    text-align: center;
+    padding: 7px 4px;
+    font-size: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-faint);
+  }
+  .stake-quick div:hover { border-color: var(--accent); color: var(--accent); }
+
+  .auto-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-faint);
+    margin-bottom: 12px;
+  }
+  .switch {
+    width: 38px;
+    height: 22px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+  }
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    transition: left 0.15s ease, background 0.15s ease;
+  }
+  .switch.on { background: rgba(95,179,217,0.25); border-color: var(--accent); }
+  .switch.on::after { left: 18px; background: var(--accent); }
+
+  .bet-action {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.1s ease, opacity 0.1s ease;
+  }
+  .bet-action.bet { background: linear-gradient(45deg, var(--accent), var(--accent-2)); color: #0b0d10; }
+  .bet-action.cashout { background: linear-gradient(45deg, var(--rise), #047857); color: #fff; }
+  .bet-action:hover:not(:disabled) { transform: translateY(-1px); }
+  .bet-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .colside .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+  .colside .panel h3 { margin: 0 0 14px; font-size: 15px; }
+
+  .pay-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .pay-row:last-child { border-bottom: none; }
+  .pay-tag {
+    font-size: 11px;
+    color: var(--rise);
+    background: rgba(63,174,122,0.12);
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+
+  .ticker-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--rise);
+    margin-left: 8px;
+  }
+  .ticker-live .pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--rise);
+    animation: pulseDot 1.8s infinite;
+  }
+
+  .winner-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .winner-row:last-child { border-bottom: none; }
+  .winner-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .winner-info { flex: 1; min-width: 0; }
+  .winner-id { font-size: 12px; color: var(--text-faint); }
+  .winner-amt { font-size: 13px; font-weight: 700; color: var(--rise); }
+  .winner-game { font-size: 11px; color: var(--text-faint); }
+
+  @media (max-width: 900px) {
+    .content { grid-template-columns: 1fr; }
+    .bet-panels { grid-template-columns: 1fr; }
+  }
+</style>
+<div class="content">
+  <div class="colmain">
+    <div class="crumb" onclick="history.back()" style="cursor:pointer;"><span class="back">&larr;</span> Crash games</div>
+
+    <div class="crash-stage">
+      <div class="stage-toolbar">
+        <div class="fairness-note"><span class="dot"></span>Provably fair (demo)</div>
+        <div class="sound-toggle" id="soundToggle" onclick="toggleSound()">&#128266;</div>
+      </div>
+
+      <div class="round-history" id="roundHistory"></div>
+
+      <div class="crash-top">
+        <div class="gname">JetX</div>
+        <span class="crash-status live" id="crashStatus">Live round</span>
+      </div>
+      <div class="crash-multiplier" id="crashMult">1.00x</div>
+      <div class="crash-track">
+        <svg viewBox="0 0 400 110" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#5FB3D9" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#5FB3D9" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path id="crashArea" fill="url(#areaGrad)" stroke="none"/>
+          <polyline id="crashLine" points="0,110" fill="none" stroke="#5FB3D9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <g id="planeIcon" transform="translate(0,110) rotate(0)">
+            <path d="M0,-7 L15,0 L0,7 L3,0 Z" fill="#5FB3D9"/>
+            <path d="M2,-3 L-6,-9 L-2,-2 Z" fill="#F2A65A"/>
+            <path d="M2,3 L-6,9 L-2,2 Z" fill="#F2A65A"/>
+            <path d="M-2,-2 L-8,0 L-2,2 Z" fill="#F2A65A"/>
+          </g>
+          <text id="crashExplosion" class="crash-explosion" x="0" y="110">&#128165;</text>
+        </svg>
+      </div>
+
+      <div class="bet-panels">
+        {% for i in [0, 1] %}
+        <div class="bet-panel" data-panel="{{ i }}">
+          <div class="bet-panel-tabs">
+            <div class="bet-panel-tab active" onclick="setPanelTab(this, {{ i }}, 'bet')">Bet</div>
+            <div class="bet-panel-tab" onclick="setPanelTab(this, {{ i }}, 'auto')">Auto</div>
+          </div>
+          <div class="stake-stepper">
+            <button onclick="adjustStake({{ i }}, -10)">&minus;</button>
+            <input type="text" id="stakeInput{{ i }}" value="{{ 100 if i == 0 else 50 }}" oninput="setStakeFromInput({{ i }}, this.value)">
+            <button onclick="adjustStake({{ i }}, 10)">+</button>
+          </div>
+          <div class="stake-quick">
+            <div onclick="setStake({{ i }}, 50)">50</div>
+            <div onclick="setStake({{ i }}, 100)">100</div>
+            <div onclick="setStake({{ i }}, 500)">500</div>
+            <div onclick="setStake({{ i }}, 1000)">1,000</div>
+          </div>
+          <div class="auto-row" id="autoRow{{ i }}" style="display:none;">
+            <span>Auto cash out</span>
+            <div class="switch" id="autoSwitch{{ i }}" onclick="toggleAuto({{ i }})"></div>
+          </div>
+          <div class="field auto-cashout-input" id="autoCashoutWrap{{ i }}" style="margin-bottom:12px;">
+            <label style="display:block; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); margin-bottom:6px;">Cash out at (x)</label>
+            <input type="text" id="autoCashoutTarget{{ i }}" value="{{ '2.00' if i == 0 else '3.00' }}" oninput="setCashoutTarget({{ i }}, this.value)" style="width:100%; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; padding:9px 11px; font-size:13px; color:var(--text); font-family:'JetBrains Mono';">
+          </div>
+          <button class="bet-action bet" id="actionBtn{{ i }}" onclick="handleAction({{ i }})">Bet KSH {{ 100 if i == 0 else 50 }}</button>
+        </div>
+        {% endfor %}
+      </div>
+      <div style="font-size:11px; color:var(--text-faint); margin-top:12px; text-align:center;">Demo round &mdash; not a live bet, no wallet or RNG backend is connected</div>
+    </div>
+  </div>
+
+  <div class="colside">
+    <div class="panel">
+      <h3>Payment methods</h3>
+      <div class="pay-row"><span class="name">M-Pesa</span><span class="pay-tag">Instant</span></div>
+      <div class="pay-row"><span class="name">USDT (TRC20)</span><span class="pay-tag">Instant</span></div>
+      <div class="pay-row"><span class="name">Bank transfer</span><span class="pay-tag">~10 min</span></div>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex; align-items:center; margin-bottom:14px;">
+        <h3 style="margin:0;">Winners</h3>
+        <div class="ticker-live"><span class="pulse"></span>Live</div>
+      </div>
+      <div id="winnerList"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ---- decorative game only: NOT wired to real bets/RNG/wallet ---- */
+/* Runs continuously on its own clock — waiting/running/crashed cycle
+   never depends on whether either panel has a stake placed. */
+const multEl = document.getElementById('crashMult');
+const statusEl = document.getElementById('crashStatus');
+const lineEl = document.getElementById('crashLine');
+const areaEl = document.getElementById('crashArea');
+const planeEl = document.getElementById('planeIcon');
+const explosionEl = document.getElementById('crashExplosion');
+
+const panels = [
+  { staked: false, cashedOutAt: null, autoCashoutOn: false, stake: 100, cashoutTarget: 2.00, mode: 'bet' },
+  { staked: false, cashedOutAt: null, autoCashoutOn: false, stake: 50, cashoutTarget: 3.00, mode: 'bet' },
+];
+let phase = 'waiting';
+let currentMult = 1;
+let waitTimer = null;
+let soundOn = true;
+
+function $(id){ return document.getElementById(id); }
+
+function generateCrashPoint(){
+  const r = Math.min(Math.random(), 0.999999);
+  let point = 99 / (1 - r) / 100;
+  if (point > 1000000) point = 1000000;
+  if (point < 1.01) point = 1.01;
+  return point;
+}
+
+function formatMult(v){
+  if (v < 1000) return v.toFixed(2) + 'x';
+  return Math.round(v).toLocaleString() + 'x';
+}
+
+function setPanelTab(el, idx, mode){
+  const panel = el.closest('.bet-panel');
+  panel.querySelectorAll('.bet-panel-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  panels[idx].mode = mode;
+  panel.querySelector('.auto-row').style.display = mode === 'auto' ? 'flex' : 'none';
+  panel.querySelector('.auto-cashout-input').classList.toggle('visible', mode === 'auto' && panels[idx].autoCashoutOn);
+}
+
+function adjustStake(idx, delta){
+  panels[idx].stake = Math.max(10, panels[idx].stake + delta);
+  $('stakeInput' + idx).value = panels[idx].stake;
+  updateActionButton(idx);
+}
+function setStake(idx, val){
+  panels[idx].stake = val;
+  $('stakeInput' + idx).value = val;
+  updateActionButton(idx);
+}
+function setStakeFromInput(idx, val){
+  const v = parseInt(val) || 10;
+  panels[idx].stake = Math.max(10, v);
+  updateActionButton(idx);
+}
+function setCashoutTarget(idx, val){
+  const v = parseFloat(val);
+  if (!isNaN(v) && v > 1) panels[idx].cashoutTarget = v;
+}
+
+function toggleAuto(idx){
+  panels[idx].autoCashoutOn = !panels[idx].autoCashoutOn;
+  $('autoSwitch' + idx).classList.toggle('on', panels[idx].autoCashoutOn);
+  $('autoCashoutWrap' + idx).classList.toggle('visible', panels[idx].autoCashoutOn);
+}
+
+function updateActionButton(idx){
+  const p = panels[idx];
+  const btn = $('actionBtn' + idx);
+  if (phase === 'waiting') {
+    if (p.staked) {
+      btn.textContent = 'Cancel bet (KSH ' + p.stake + ')';
+      btn.className = 'bet-action cashout';
+    } else {
+      btn.textContent = 'Bet KSH ' + p.stake;
+      btn.className = 'bet-action bet';
+    }
+    btn.disabled = false;
+  } else if (phase === 'running') {
+    if (p.staked && !p.cashedOutAt) {
+      btn.textContent = 'Cash Out ' + formatMult(currentMult);
+      btn.className = 'bet-action cashout';
+      btn.disabled = false;
+    } else if (p.staked && p.cashedOutAt) {
+      btn.textContent = 'Cashed out @ ' + formatMult(p.cashedOutAt);
+      btn.className = 'bet-action cashout';
+      btn.disabled = true;
+    } else {
+      btn.textContent = 'Bet KSH ' + p.stake;
+      btn.className = 'bet-action bet';
+      btn.disabled = true;
+    }
+  } else {
+    if (p.staked && !p.cashedOutAt) {
+      btn.textContent = 'Busted';
+      btn.className = 'bet-action cashout';
+    } else if (p.staked && p.cashedOutAt) {
+      btn.textContent = 'Cashed out @ ' + formatMult(p.cashedOutAt);
+      btn.className = 'bet-action cashout';
+    } else {
+      btn.textContent = 'Bet KSH ' + p.stake;
+      btn.className = 'bet-action bet';
+    }
+    btn.disabled = true;
+  }
+}
+
+function handleAction(idx){
+  const p = panels[idx];
+  if (phase === 'waiting') {
+    p.staked = !p.staked;
+    updateActionButton(idx);
+  } else if (phase === 'running' && p.staked && !p.cashedOutAt) {
+    cashOutPanel(idx);
+  }
+}
+
+function cashOutPanel(idx){
+  panels[idx].cashedOutAt = currentMult;
+  updateActionButton(idx);
+}
+
+function addRoundHistory(mult){
+  const el = $('roundHistory');
+  const chip = document.createElement('div');
+  let cls = 'low';
+  if (mult >= 100) cls = 'huge'; else if (mult >= 10) cls = 'high'; else if (mult >= 2) cls = 'mid';
+  chip.className = 'round-chip ' + cls;
+  chip.textContent = formatMult(mult);
+  el.insertBefore(chip, el.firstChild);
+  while (el.children.length > 10) { el.removeChild(el.lastChild); }
+}
+
+function toggleSound(){
+  soundOn = !soundOn;
+  const el = $('soundToggle');
+  el.innerHTML = soundOn ? '&#128266;' : '&#128263;';
+  el.classList.toggle('muted', !soundOn);
+}
+
+function startWaitingPhase(){
+  phase = 'waiting';
+  currentMult = 1;
+  statusEl.className = 'crash-status live';
+  multEl.textContent = '1.00x';
+  multEl.className = 'crash-multiplier';
+  lineEl.setAttribute('points', '0,110');
+  areaEl.setAttribute('d', '');
+  planeEl.classList.remove('hidden');
+  planeEl.setAttribute('transform', 'translate(0,110) rotate(0)');
+  explosionEl.classList.remove('show');
+  panels.forEach((p, i) => { p.cashedOutAt = null; updateActionButton(i); });
+
+  let secondsLeft = 3;
+  statusEl.textContent = 'Next round in ' + secondsLeft + 's';
+  waitTimer = setInterval(() => {
+    secondsLeft--;
+    if (secondsLeft <= 0) {
+      clearInterval(waitTimer);
+      startLiveRound();
+    } else {
+      statusEl.textContent = 'Next round in ' + secondsLeft + 's';
+    }
+  }, 1000);
+}
+
+function startLiveRound(){
+  phase = 'running';
+  const crashAt = generateCrashPoint();
+  const duration = Math.min(14000, 2000 + Math.log10(crashAt) * 2000);
+  statusEl.textContent = 'Live round';
+  statusEl.className = 'crash-status live';
+  multEl.className = 'crash-multiplier';
+  panels.forEach((p, i) => updateActionButton(i));
+
+  const pxPerSecond = 55;
+  let history = [{ t: 0, mult: 1 }];
+  let lastRecord = 0;
+  const start = performance.now();
+
+  function toXY(t, mult, yScaleRef, offset){
+    const wx = t * pxPerSecond;
+    const x = wx - offset;
+    const logRef = Math.log(Math.max(yScaleRef, 1.01));
+    let y = 110 - (Math.log(Math.max(mult, 1)) / logRef) * 106;
+    if (y < 4) y = 4;
+    if (y > 110) y = 110;
+    return [x, y];
+  }
+
+  function frame(now){
+    const elapsed = now - start;
+    const elapsedSec = elapsed / 1000;
+    const progress = Math.min(1, elapsed / duration);
+    currentMult = Math.pow(crashAt, progress);
+    multEl.textContent = formatMult(currentMult);
+
+    if (elapsed - lastRecord >= 60 || progress >= 1) {
+      history.push({ t: elapsedSec, mult: currentMult });
+      lastRecord = elapsed;
+    }
+
+    const yScaleRef = Math.max(currentMult * 1.25, 2);
+    const latestWorldX = elapsedSec * pxPerSecond;
+    const offset = Math.max(0, latestWorldX - 400);
+
+    const displayPts = history.map(p => toXY(p.t, p.mult, yScaleRef, offset));
+    const [tipX, tipY] = toXY(elapsedSec, currentMult, yScaleRef, offset);
+    displayPts.push([tipX, tipY]);
+
+    lineEl.setAttribute('points', displayPts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' '));
+    const firstX = displayPts[0][0];
+    areaEl.setAttribute('d', `M ${firstX.toFixed(1)},110 L ` + displayPts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' L ') + ` L ${tipX.toFixed(1)},110 Z`);
+
+    const prev = displayPts.length > 1 ? displayPts[displayPts.length - 2] : [0, 110];
+    const angle = Math.atan2(tipY - prev[1], tipX - prev[0]) * (180 / Math.PI);
+    planeEl.setAttribute('transform', `translate(${tipX.toFixed(1)},${tipY.toFixed(1)}) rotate(${angle.toFixed(1)})`);
+
+    panels.forEach((p, i) => {
+      if (p.staked && !p.cashedOutAt && p.autoCashoutOn && currentMult >= p.cashoutTarget) {
+        cashOutPanel(i);
+      } else {
+        updateActionButton(i);
+      }
+    });
+
+    if (progress >= 1) {
+      phase = 'crashed';
+      multEl.className = 'crash-multiplier crashed';
+      statusEl.textContent = 'Crashed';
+      statusEl.className = 'crash-status crashed';
+      lineEl.setAttribute('stroke', 'var(--fall)');
+      planeEl.classList.add('hidden');
+      explosionEl.setAttribute('x', tipX.toFixed(1));
+      explosionEl.setAttribute('y', tipY.toFixed(1));
+      explosionEl.classList.add('show');
+      addRoundHistory(crashAt);
+      panels.forEach((p, i) => updateActionButton(i));
+      setTimeout(() => { lineEl.setAttribute('stroke', '#5FB3D9'); startWaitingPhase(); }, 2200);
+      return;
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+startWaitingPhase();
+
+/* ---- winners ticker (same as dashboard) ---- */
+const names = ['254***925','254***769','254***441','254***908','254***317','254***602','254***184'];
+const otherGames = ['Aviator','JetX','Plinko','Mines','Chicken Road','Fortune Tiger'];
+const colors = [
+  {bg:'rgba(217,164,65,0.18)', fg:'#D9A441'},
+  {bg:'rgba(95,179,217,0.18)', fg:'#5FB3D9'},
+  {bg:'rgba(63,174,122,0.18)', fg:'#3FAE7A'}
+];
+
+function randAmt(){ return (Math.random()*4000+200).toFixed(0); }
+function initials(g){ return g.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+function makeRow(){
+  const c = colors[Math.floor(Math.random()*colors.length)];
+  const g = otherGames[Math.floor(Math.random()*otherGames.length)];
+  const row = document.createElement('div');
+  row.className = 'winner-row';
+  row.innerHTML = `
+    <div class="winner-icon" style="background:${c.bg}; color:${c.fg};">${initials(g)}</div>
+    <div class="winner-info">
+      <div class="winner-id">${names[Math.floor(Math.random()*names.length)]}</div>
+      <div class="winner-amt">+KSH ${Number(randAmt()).toLocaleString()}</div>
+    </div>
+    <div class="winner-game">${g}</div>
+  `;
+  return row;
+}
+
+const list = document.getElementById('winnerList');
+for(let i=0;i<5;i++){ list.appendChild(makeRow()); }
+
+setInterval(()=>{
+  list.insertBefore(makeRow(), list.firstChild);
+  if(list.children.length > 6){ list.removeChild(list.lastChild); }
+}, 2600);
+</script>
+{% endblock %}

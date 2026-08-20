@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Sign in — {{ site_name }}{% endblock %}
+{% block content %}
+<style>
+  .auth-layout {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    min-height: calc(100vh - 72px);
+  }
+  @media (max-width: 900px) {
+    .auth-layout { grid-template-columns: 1fr; }
+    .auth-showcase { order: 2; }
+    .auth-panel { order: 1; }
+  }
+
+  .auth-panel {
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-right: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .auth-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .auth-tab {
+    flex: 1;
+    text-align: center;
+    padding: 12px 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-faint);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+  }
+  .auth-tab.active {
+    color: var(--accent, #e8b93f);
+    border-bottom-color: var(--accent, #e8b93f);
+  }
+
+  .auth-panel h1 {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    margin: 0 0 24px;
+  }
+
+  .auth-field { margin-bottom: 18px; }
+  .auth-field label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .auth-field input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: none;
+    background: #f0eee8;
+    color: #1a1a1a;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+  }
+
+  .auth-submit {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent, #e8b93f);
+    color: #1a1a1a;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .auth-submit:hover { filter: brightness(1.05); }
+
+  .auth-footnote {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 0.88rem;
+    color: var(--text-faint);
+  }
+  .auth-footnote a { color: var(--accent, #e8b93f); text-decoration: none; }
+
+  .auth-showcase {
+    position: relative;
+    padding: 48px 40px;
+    overflow-y: auto;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.75)),
+      radial-gradient(circle at 30% 20%, rgba(232,185,63,0.12), transparent 60%);
+  }
+  .auth-showcase h2 {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    margin: 0 0 4px;
+  }
+  .auth-showcase .sub {
+    color: var(--text-faint);
+    font-size: 0.9rem;
+    margin: 0 0 24px;
+  }
+
+  .game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px;
+  }
+  .game-card {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    border-radius: 12px;
+    overflow: hidden;
+    background: linear-gradient(160deg, #2a2a2a, #151515);
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: flex-end;
+  }
+  .game-card img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .game-card .name {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    padding: 10px 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: linear-gradient(0deg, rgba(0,0,0,0.85), transparent);
+  }
+  .game-card .badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 1;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 3px 7px;
+    border-radius: 5px;
+    color: #1a1a1a;
+  }
+  .badge-hot { background: #ff6b4a; }
+  .badge-new { background: #4ade80; }
+  .badge-popular { background: var(--accent, #e8b93f); }
+</style>
+
+<div class="auth-layout">
+  <div class="auth-panel">
+    <div class="auth-tabs">
+      <a href="{{ url_for('auth.login') }}" class="auth-tab active">Sign in</a>
+      <a href="{{ url_for('auth.register') }}" class="auth-tab">Register</a>
+    </div>
+
+    <h1>Sign in</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div style="background:rgba(255,255,255,0.06);border-radius:8px;padding:12px 14px;margin-bottom:18px;color:var(--text-faint);">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('auth.login') }}">
+      {% if form and form.hidden_tag %}{{ form.hidden_tag() }}{% endif %}
+      <div class="auth-field">
+        <label for="phone">Phone number</label>
+        <input type="text" id="phone" name="phone" placeholder="07XX XXX XXX" required autocomplete="username">
+      </div>
+      <div class="auth-field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="auth-submit">Sign in</button>
+    </form>
+
+    <p class="auth-footnote">New to {{ site_name }}? <a href="{{ url_for('auth.register') }}">Create an account</a></p>
+  </div>
+
+  <div class="auth-showcase">
+    <h2>Play now</h2>
+    <p class="sub">Crash games, slots, live tables &amp; jackpots</p>
+    <div class="game-grid">
+      {% for game in (showcase_games or default_showcase_games) %}
+      <div class="game-card">
+        {% if game.badge %}<span class="badge badge-{{ game.badge|lower }}">{{ game.badge }}</span>{% endif %}
+        {% if game.thumbnail_url %}
+          <img src="{{ game.thumbnail_url }}" alt="{{ game.name }}">
+        {% endif %}
+        <div class="name">{{ game.name }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

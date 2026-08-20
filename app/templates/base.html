@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ site_name }}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a href="{{ url_for('casino.lobby') }}" class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
+          <path d="M16 3 L16 15" stroke="var(--gold)" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M16 15 L9 22 M16 15 L23 22 M16 15 L16 29 M9 22 L4 27 M9 22 L11 29 M23 22 L28 27 M23 22 L21 29"
+                stroke="var(--gold)" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.85"/>
+        </svg>
+      </span>
+      <span class="brand-name">Mzizi<em>bet</em></span>
+    </a>
+    <nav class="topnav">
+      <a href="{{ url_for('casino.lobby') }}" class="{{ 'active' if request.blueprint == 'casino' else '' }}">Casino</a>
+      <a href="{{ url_for('sports.lobby') }}" class="{{ 'active' if request.blueprint == 'sports' else '' }}">Sports</a>
+      <a href="#">Leaderboard</a>
+    </nav>
+    {% if current_user.is_authenticated %}
+    <div class="topbar-right">
+      <a href="{{ url_for('wallet.overview') }}" class="balance-pill">
+        <span class="balance-label">Balance</span>
+        <span class="balance-amount">KES {{ '%.2f'|format(current_user.wallet.balance) }}</span>
+      </a>
+      <a href="{{ url_for('wallet.deposit') }}" class="btn-gold btn-sm">+ Top up</a>
+      <a href="{{ url_for('auth.logout') }}" class="icon-link" title="Sign out">⏻</a>
+    </div>
+    {% else %}
+    <div class="topbar-right">
+      <a href="{{ url_for('auth.login') }}" class="btn-outline btn-sm">Sign in</a>
+      <a href="{{ url_for('auth.register') }}" class="btn-gold btn-sm">Register</a>
+    </div>
+    {% endif %}
+  </header>
+  <main class="page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <div class="footer-root-divider" aria-hidden="true"></div>
+    <div class="footer-grid">
+      <div>
+        <span class="brand-name small">Mzizi<em>bet</em></span>
+        <p class="footer-tag">Rooted in fair play. Licensed and regulated.</p>
+      </div>
+      <div>
+        <h4>Casino</h4>
+        <a href="#">Slots</a><a href="#">Crash Games</a><a href="#">Table Games</a><a href="#">Live Casino</a>
+      </div>
+      <div>
+        <h4>Sports</h4>
+        <a href="#">Football</a><a href="#">Basketball</a><a href="#">Tennis</a><a href="#">Rugby</a>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <a href="#">Help Center</a><a href="#">Responsible Gambling</a><a href="#">Terms of Service</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Mzizibet. 18+. Play responsibly. Betting involves risk.</span>
+    </div>
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

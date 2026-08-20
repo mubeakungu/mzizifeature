@@ -1,0 +1,509 @@
+{% extends "base.html" %}
+
+{% block title %}Aviator Mzizi - Mzizibet{% endblock %}
+
+{% block content %}
+<div class="game-container aviator">
+  
+  <div class="game-header">
+    <h1>✈️ Aviator Mzizi</h1>
+    <p>Fly higher for bigger multipliers. Jump out before the plane crashes!</p>
+  </div>
+
+  <div class="game-main">
+    
+    <!-- Game Display -->
+    <div class="game-display aviator-display">
+      <div class="metrics-row">
+        <div class="metric">
+          <label>Altitude</label>
+          <span id="multiplier" class="metric-value">1.00x</span>
+        </div>
+        <div class="metric">
+          <label>Round</label>
+          <span id="round" class="metric-value">0</span>
+        </div>
+        <div class="metric">
+          <label>Pilots</label>
+          <span id="players" class="metric-value">0</span>
+        </div>
+      </div>
+
+      <!-- Plane Canvas -->
+      <div class="plane-container">
+        <canvas id="aviator-canvas"></canvas>
+      </div>
+
+      <!-- Status -->
+      <div class="game-status">
+        <span id="status" class="status-text">Waiting for takeoff...</span>
+      </div>
+    </div>
+
+    <!-- Betting Panel -->
+    <div class="betting-panel">
+      <h2>Bet & Fly</h2>
+
+      <div class="balance-box">
+        <span>Balance</span>
+        <span id="balance" class="balance-amount">0 KES</span>
+      </div>
+
+      <div class="form-group">
+        <label>Bet Amount</label>
+        <input type="number" id="bet-amount" placeholder="100" min="10" max="10000" class="input-field">
+      </div>
+
+      <div class="presets">
+        <button class="preset" data-amount="50">50</button>
+        <button class="preset" data-amount="100">100</button>
+        <button class="preset" data-amount="500">500</button>
+        <button class="preset" data-amount="1000">1K</button>
+      </div>
+
+      <button id="bet-btn" class="btn btn-primary" disabled>Place Bet</button>
+      <button id="cashout-btn" class="btn btn-success" style="display:none;">🪂 JUMP OUT</button>
+
+      <div class="form-group">
+        <label>Auto Jump at</label>
+        <input type="number" id="auto-cashout" placeholder="e.g., 2.50" min="1.01" max="500" step="0.01" class="input-field">
+      </div>
+
+      <div class="info-box">
+        <h4>How to Play</h4>
+        <ul>
+          <li>Place bet before takeoff</li>
+          <li>Watch plane climb</li>
+          <li>Jump out to cash winnings</li>
+          <li>Too late = crash!</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <h3>Recent Flights</h3>
+      <div id="recent-bets" class="bets-list">
+        <p class="empty">No bets yet</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <h3>Your Stats</h3>
+      <div class="stats-grid">
+        <div class="stat"><span class="label">Wagered</span><span id="stat-wagered" class="value">0</span></div>
+        <div class="stat"><span class="label">Winnings</span><span id="stat-won" class="value">0</span></div>
+        <div class="stat"><span class="label">Flights</span><span id="stat-wins" class="value">0</span></div>
+        <div class="stat"><span class="label">Crashes</span><span id="stat-losses" class="value">0</span></div>
+        <div class="stat"><span class="label">Highest</span><span id="stat-best" class="value">-</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+<style>
+.aviator {
+  --primary: #2563eb;
+  --success: #16a34a;
+  --danger: #dc2626;
+}
+
+.aviator-display {
+  background: linear-gradient(135deg, #001a4d 0%, #0033cc 50%, #0066ff 100%);
+  border: 2px solid #0084ff;
+  box-shadow: 0 0 30px rgba(0, 132, 255, 0.3);
+}
+
+.plane-container {
+  position: relative;
+  height: 300px;
+  background: radial-gradient(circle at 50% 30%, #0099ff 0%, #001a4d 100%);
+  border-radius: 8px;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+#aviator-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.metric {
+  text-align: center;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+}
+
+.metric label {
+  display: block;
+  font-size: 0.8rem;
+  color: #a0a0a0;
+  margin-bottom: 0.5rem;
+}
+
+.metric-value {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #00d4ff, #0084ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.game-status {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(0, 84, 255, 0.2);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 132, 255, 0.5);
+}
+
+.status-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0084ff;
+}
+
+.status-text.live {
+  color: #00ff00;
+  animation: pulse 0.8s infinite;
+}
+
+.status-text.crashed {
+  color: #ff0000;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.info-box {
+  background: rgba(255, 200, 0, 0.1);
+  border: 1px solid rgba(255, 200, 0, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1.5rem;
+}
+
+.info-box h4 {
+  color: #ffc800;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.info-box ul {
+  list-style: none;
+  font-size: 0.85rem;
+  color: #a0a0a0;
+  line-height: 1.6;
+}
+
+.info-box li:before {
+  content: "✈ ";
+  color: #2563eb;
+  font-weight: 700;
+  margin-right: 0.5rem;
+}
+
+#cashout-btn {
+  animation: pulse-green 0.6s infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+  50% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.preset {
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.preset:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.bets-list {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+}
+
+.bet-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.bet-item.won .value { color: #16a34a; }
+.bet-item.lost .value { color: #dc2626; }
+</style>
+
+<script>
+const socket = io('/aviator-mzizi');
+const gameState = {
+  round: 0,
+  status: 'waiting',
+  multiplier: 1.00,
+  crashPoint: null,
+  activeBet: null,
+  hasJumped: false
+};
+
+let planeX = 200, planeY = 250, altitudeBoost = 0;
+
+const canvas = document.getElementById('aviator-canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function drawPlane() {
+  const screenHeight = canvas.height;
+  planeY = screenHeight - 50 - altitudeBoost;
+  
+  // Draw clouds
+  ctx.fillStyle = 'rgba(200, 220, 255, 0.3)';
+  ctx.beginPath();
+  ctx.arc(100, 50, 30, 0, Math.PI * 2);
+  ctx.arc(150, 40, 35, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Draw plane
+  ctx.fillStyle = '#ffaa00';
+  ctx.shadowColor = 'rgba(255, 170, 0, 0.8)';
+  ctx.shadowBlur = 20;
+  
+  // Fuselage
+  ctx.fillRect(planeX - 30, planeY - 10, 60, 20);
+  
+  // Wings
+  ctx.fillRect(planeX - 50, planeY, 100, 8);
+  
+  // Cockpit
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(planeX, planeY - 8, 4, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.shadowColor = 'transparent';
+}
+
+function updateDisplay() {
+  document.getElementById('multiplier').textContent = gameState.multiplier.toFixed(2) + 'x';
+  document.getElementById('round').textContent = gameState.round;
+  
+  const status = document.getElementById('status');
+  status.className = 'status-text ' + gameState.status;
+  
+  switch(gameState.status) {
+    case 'betting':
+      status.textContent = '🎯 Pilots boarding...';
+      document.getElementById('bet-btn').disabled = false;
+      document.getElementById('cashout-btn').style.display = 'none';
+      break;
+    case 'live':
+      status.textContent = '✈️ FLYING - Jump out anytime!';
+      document.getElementById('bet-btn').disabled = true;
+      if (gameState.activeBet) {
+        document.getElementById('cashout-btn').style.display = 'block';
+      }
+      break;
+    case 'crashed':
+      status.textContent = '💥 CRASHED at ' + gameState.crashPoint.toFixed(2) + 'x';
+      document.getElementById('cashout-btn').style.display = 'none';
+      break;
+  }
+}
+
+socket.on('connect', () => {
+  socket.emit('join_game');
+  socket.emit('request_current_state');
+});
+
+socket.on('new_round', (data) => {
+  gameState.round = data.round_number;
+  gameState.status = 'betting';
+  gameState.activeBet = null;
+  gameState.hasJumped = false;
+  altitudeBoost = 0;
+  updateDisplay();
+  ctx.fillStyle = 'rgba(0, 100, 255, 0.1)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawPlane();
+});
+
+socket.on('current_state', (data) => {
+  if (!data) return;
+  gameState.round = data.round_number || 0;
+  gameState.status = data.status || 'waiting';
+  gameState.multiplier = Number(data.multiplier || 1);
+  document.getElementById('players').textContent = data.players || 0;
+  updateDisplay();
+});
+
+socket.on('game_start', () => {
+  gameState.status = 'live';
+  gameState.multiplier = 1.00;
+  updateDisplay();
+});
+
+socket.on('multiplier_update', (data) => {
+  gameState.multiplier = data.multiplier;
+  altitudeBoost = (data.multiplier - 1.0) * 50;
+  
+  ctx.fillStyle = 'rgba(0, 150, 255, 0.05)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawPlane();
+  
+  if (gameState.activeBet && !gameState.hasJumped && document.getElementById('auto-cashout').value) {
+    const autoCashout = parseFloat(document.getElementById('auto-cashout').value);
+    if (data.multiplier >= autoCashout) {
+      jumpOut();
+    }
+  }
+});
+
+socket.on('game_crashed', (data) => {
+  gameState.status = 'crashed';
+  gameState.crashPoint = data.crash_point;
+  if (gameState.activeBet && !gameState.hasJumped) {
+    gameState.activeBet = null;
+  }
+  updateDisplay();
+});
+
+socket.on('player_joined', (data) => {
+  document.getElementById('players').textContent = data.players;
+});
+
+document.getElementById('bet-btn').addEventListener('click', async () => {
+  const amount = parseFloat(document.getElementById('bet-amount').value);
+  if (!amount) return;
+  
+  const res = await fetch('/aviator-mzizi/api/bet', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount })
+  });
+  
+  const data = await res.json();
+  if (data.success) {
+    gameState.activeBet = data.bet_id;
+    document.getElementById('bet-amount').value = '';
+    document.getElementById('balance').textContent =
+      Number(data.balance || 0).toLocaleString('en-KE') + ' KES';
+    updateDisplay();
+  } else {
+    alert(data.error);
+  }
+});
+
+document.getElementById('cashout-btn').addEventListener('click', jumpOut);
+
+async function jumpOut() {
+  if (!gameState.activeBet || gameState.hasJumped) return;
+  
+  const res = await fetch('/aviator-mzizi/api/cashout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ current_multiplier: gameState.multiplier })
+  });
+  
+  const data = await res.json();
+  if (data.success) {
+    gameState.hasJumped = true;
+    gameState.activeBet = null;
+    document.getElementById('balance').textContent =
+      Number(data.balance || 0).toLocaleString('en-KE') + ' KES';
+    updateDisplay();
+    alert(`🪂 Jumped at ${gameState.multiplier.toFixed(2)}x!\n+${Number(data.profit || 0).toLocaleString('en-KE', {style:'currency', currency:'KES'})}`);
+  } else if (data.error) {
+    alert(data.error);
+  }
+}
+
+document.querySelectorAll('.preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('bet-amount').value = btn.dataset.amount;
+  });
+});
+
+async function loadAviatorData() {
+  try {
+    const statsResponse = await fetch('/aviator-mzizi/api/stats');
+    if (!statsResponse.ok) throw new Error(`Stats request failed: ${statsResponse.status}`);
+    const s = await statsResponse.json();
+
+    document.getElementById('stat-wagered').textContent =
+      Number(s.total_wagered || 0).toLocaleString();
+    document.getElementById('stat-won').textContent =
+      Number(s.total_won || 0).toLocaleString();
+    document.getElementById('stat-wins').textContent = s.win_count || 0;
+    document.getElementById('stat-losses').textContent = s.loss_count || 0;
+    document.getElementById('stat-best').textContent =
+      Number(s.best_multiplier || 0) > 0
+        ? Number(s.best_multiplier).toFixed(2) + 'x'
+        : '-';
+
+    const historyResponse = await fetch('/aviator-mzizi/api/history?limit=10');
+    if (!historyResponse.ok) throw new Error(`History request failed: ${historyResponse.status}`);
+    const bets = await historyResponse.json();
+
+    const list = document.getElementById('recent-bets');
+    if (Array.isArray(bets) && bets.length) {
+      list.innerHTML = bets.map(b => `
+        <div class="bet-item ${b.status}">
+          <span>${Number(b.amount || 0).toLocaleString()} KES</span>
+          <span class="value">${b.payout ? '+' + Number(b.payout).toLocaleString() : 'Crashed'}</span>
+        </div>
+      `).join('');
+    }
+  } catch (error) {
+    console.error('Failed to load Aviator stats/history:', error);
+  }
+}
+
+loadAviatorData();
+
+drawPlane();
+updateDisplay();
+</script>
+{% endblock %}

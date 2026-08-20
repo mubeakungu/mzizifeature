@@ -1,0 +1,313 @@
+{#
+  _sidebar.html — right-hand sidebar (betslip / crash games / promotions),
+  styled to match Mzizibet's dark navy + gold palette rather than copying
+  a competitor's actual colors.
+
+  Include with: {% include "_sidebar.html" %}
+  Wrap the page content + this include in a two-column grid — see the
+  ".page-with-sidebar" example in casino_lobby.html.
+
+  Data sources:
+  - sidebar_crash_games: real Game rows (category "crash"), injected via
+    the inject_globals() context processor in app/__init__.py — available
+    on every page automatically, no per-route wiring needed.
+  - sidebar_promotions: same context processor, currently a STATIC
+    placeholder list (no Promotion model exists yet). Swap for a real
+    query once you have one.
+  - Betslip: wired to get_betslip_summary() in app/routes/sports.py via
+    inject_globals(). betslip_items entries are dicts with selection_name,
+    home_team, away_team, odds, status (see get_betslip_summary()).
+#}
+<aside class="sidebar">
+
+  <!-- Betslip -->
+  <div class="side-card betslip-card">
+    <div class="side-card-header">
+      <h3>Betslip</h3>
+      <span class="count-badge">{{ betslip_items|length if betslip_items else 0 }}</span>
+    </div>
+
+    {% if betslip_items %}
+      <div class="betslip-items">
+        {% for item in betslip_items %}
+        <div class="betslip-item">
+          <div class="betslip-item-main">
+            <span class="betslip-match">{{ item.home_team }} vs {{ item.away_team }}</span>
+            <span class="betslip-odds">{{ '%.2f'|format(item.odds) }}</span>
+          </div>
+          <div class="betslip-item-sub">{{ item.selection_name }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="betslip-total-row">
+        <span>Total Odds</span>
+        <strong>{{ '%.2f'|format(betslip_total_odds) if betslip_total_odds else '0.00' }}</strong>
+      </div>
+      <button class="btn-place-bet">Place Bet</button>
+    {% else %}
+      <div class="betslip-empty">
+        <p>Your betslip is empty.</p>
+        <span>Add a selection from any match to get started.</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Crash Games -->
+  {% if sidebar_crash_games %}
+  <div class="side-card">
+    <div class="side-card-header">
+      <h3>⚡ Crash Games</h3>
+      <a href="{{ url_for('casino.lobby', category='crash') }}" class="see-all">All Games</a>
+    </div>
+    <div class="crash-tile-grid">
+      {% for game in sidebar_crash_games %}
+      <a href="{{ url_for('casino.play', slug=game.slug) }}" class="crash-tile">
+        {% if game.thumbnail_url %}
+          <img src="{{ game.thumbnail_url }}" alt="{{ game.name }}" loading="lazy">
+        {% else %}
+          <div class="crash-tile-placeholder">{{ game.name[:2]|upper }}</div>
+        {% endif %}
+        <span class="crash-tile-name">{{ game.name }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Promotions -->
+  {% if sidebar_promotions %}
+  <div class="side-card">
+    <div class="side-card-header">
+      <h3>🔥 Promotions</h3>
+      <a href="#" class="see-all">View All</a>
+    </div>
+    <div class="promo-list">
+      {% for promo in sidebar_promotions %}
+      <div class="promo-row">
+        <span class="promo-icon">{{ promo.icon }}</span>
+        <div class="promo-text">
+          <span class="promo-title">{{ promo.title }}</span>
+          <span class="promo-subtitle">{{ promo.subtitle }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</aside>
+
+<style>
+.page-with-sidebar {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1100px) {
+  .page-with-sidebar { grid-template-columns: 1fr; }
+  .sidebar { order: -1; }
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.side-card {
+  background: var(--bg-secondary, #16192a);
+  border: 1px solid var(--border, #262b3d);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.side-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.side-card-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary, #f2f2f2);
+}
+
+.see-all {
+  font-size: 0.75rem;
+  color: var(--gold, #d9a441);
+  text-decoration: none;
+  font-weight: 600;
+}
+.see-all:hover { text-decoration: underline; }
+
+.count-badge {
+  background: var(--gold, #d9a441);
+  color: #14171c;
+  font-size: 0.7rem;
+  font-weight: 800;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+
+/* Betslip */
+.betslip-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.betslip-item {
+  background: var(--bg-primary, #0f1119);
+  border: 1px solid var(--border, #262b3d);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.betslip-item-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-primary, #f2f2f2);
+  font-weight: 600;
+}
+
+.betslip-odds { color: var(--gold, #d9a441); }
+
+.betslip-item-sub {
+  font-size: 0.75rem;
+  color: var(--text-faint, #8a8f98);
+  margin-top: 2px;
+}
+
+.betslip-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--border, #262b3d);
+  font-size: 0.85rem;
+  color: var(--text-faint, #8a8f98);
+  margin-bottom: 12px;
+}
+
+.betslip-total-row strong {
+  color: var(--text-primary, #f2f2f2);
+  font-size: 1.1rem;
+}
+
+.btn-place-bet {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--gold, #d9a441), #b9862f);
+  color: #14171c;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.betslip-empty {
+  text-align: center;
+  padding: 20px 8px;
+  color: var(--text-faint, #8a8f98);
+}
+.betslip-empty p {
+  margin: 0 0 4px 0;
+  font-weight: 600;
+  color: var(--text-primary, #f2f2f2);
+}
+.betslip-empty span { font-size: 0.8rem; }
+
+/* Crash Games grid — landscape thumbnails */
+.crash-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.crash-tile {
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.crash-tile img,
+.crash-tile-placeholder {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
+}
+
+.crash-tile-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2d2d4a, #3d3d5c);
+  color: var(--text-faint, #8a8f98);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.crash-tile-name {
+  font-size: 0.7rem;
+  color: var(--text-primary, #f2f2f2);
+  font-weight: 600;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+/* Promotions */
+.promo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.promo-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.promo-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.promo-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.promo-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary, #f2f2f2);
+}
+
+.promo-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-faint, #8a8f98);
+}
+</style>

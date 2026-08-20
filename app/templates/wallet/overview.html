@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Wallet — {{ site_name }}{% endblock %}
+{% block content %}
+
+<div class="wallet-card">
+  <div style="font-size:0.8rem;color:var(--text-faint);margin-bottom:4px;">Current balance</div>
+  <div class="wallet-balance">KES {{ '%.2f'|format(wallet.balance) }}</div>
+  <div style="margin-top:16px;display:flex;gap:10px;">
+    <a href="{{ url_for('wallet.deposit') }}" class="btn-gold">Deposit</a>
+    <a href="#" class="btn-outline">Withdraw</a>
+  </div>
+</div>
+
+<h3 style="font-family:var(--font-display);font-weight:600;">Recent activity</h3>
+<table class="tx-table">
+  <thead>
+    <tr><th>Date</th><th>Type</th><th>Reference</th><th>Amount</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    {% for tx in transactions %}
+    <tr>
+      <td>{{ tx.created_at.strftime('%d %b, %H:%M') }}</td>
+      <td>{{ tx.type|capitalize }}</td>
+      <td style="font-family:var(--font-mono);font-size:0.78rem;color:var(--text-faint);">{{ tx.reference }}</td>
+      <td class="tx-amount {{ 'credit' if tx.type in ['deposit','payout','bonus'] else 'debit' }}">
+        {{ '+' if tx.type in ['deposit','payout','bonus'] else '-' }}KES {{ '%.2f'|format(tx.amount) }}
+      </td>
+      <td>{{ tx.status|capitalize }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" style="color:var(--text-faint);">No transactions yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

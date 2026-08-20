@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Deposit pending — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="auth-shell">
+  <h1>Check your phone</h1>
+  <p style="color:var(--text-dim);">
+    We've sent an M-Pesa request for <strong style="color:var(--gold-bright);">KES {{ '%.2f'|format(amount) }}</strong>.
+    Enter your M-Pesa PIN to complete the deposit — your balance updates automatically once it's confirmed.
+  </p>
+  <a href="{{ url_for('wallet.overview') }}" class="btn-gold auth-submit" style="text-align:center;display:block;">Back to wallet</a>
+</div>
+{% endblock %}

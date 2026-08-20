@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Register — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="auth-shell">
+  <h1>Create your account</h1>
+  <form method="post">
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="field">
+      <label for="full_name">Full name</label>
+      <input type="text" id="full_name" name="full_name" required>
+    </div>
+    <div class="field">
+      <label for="phone_number">Phone number</label>
+      <input type="tel" id="phone_number" name="phone_number" placeholder="07XXXXXXXX" required>
+    </div>
+    <div class="field">
+      <label for="date_of_birth">Date of birth</label>
+      <input type="date" id="date_of_birth" name="date_of_birth" required>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" minlength="8" required>
+    </div>
+    <button type="submit" class="btn-gold auth-submit">Create account</button>
+  </form>
+  <div class="auth-switch">Already registered? <a href="{{ url_for('auth.login', next=next) }}">Sign in</a></div>
+  <p style="font-size:0.75rem;color:var(--text-faint);margin-top:14px;">
+    You must be 18+ to register. Full ID verification (KYC) is required before withdrawals.
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ game.name }} — {{ site_name }}{% endblock %}
+{% block content %}
+<section class="provider-launch" style="max-width:900px;margin:40px auto;padding:32px;background:var(--surface);border:1px solid var(--line);border-radius:18px;text-align:center;">
+  <div style="font-size:42px;margin-bottom:12px;">🎮</div>
+  <h1 style="margin-bottom:8px;">{{ game.name }}</h1>
+  <p style="color:var(--text-faint);max-width:620px;margin:0 auto 24px;">
+    This game is configured as an external provider game. It does not use a
+    local demo implementation. A provider launch URL must be configured before
+    clients can play it.
+  </p>
+  <a href="{{ url_for('casino.lobby') }}" class="btn-gold">Back to Casino</a>
+</section>
+{% endblock %}

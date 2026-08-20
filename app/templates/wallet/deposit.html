@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Deposit — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="auth-shell">
+  <h1>Top up via M-Pesa</h1>
+  {% if error %}<div class="flash flash-error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <div class="field">
+      <label for="amount">Amount (KES)</label>
+      <input type="number" id="amount" name="amount" min="10" step="1" required>
+    </div>
+    <button type="submit" class="btn-gold auth-submit">Send STK push</button>
+  </form>
+  <p style="font-size:0.78rem;color:var(--text-faint);margin-top:14px;">
+    You'll get an M-Pesa prompt on your phone to enter your PIN and complete the deposit.
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,559 @@
+{% extends "base.html" %}
+
+{% block title %}Hi-Lo Card - Mzizibet{% endblock %}
+
+{% block content %}
+<div class="game-container hilo">
+  
+  <div class="game-header">
+    <h1>🎴 Hi-Lo Card</h1>
+    <p>Predict if the next card is higher or lower. Beat the odds!</p>
+  </div>
+
+  <div class="game-main">
+    
+    <!-- Game Display -->
+    <div class="game-display card-display">
+      <div class="metrics-row">
+        <div class="metric">
+          <label>Round</label>
+          <span id="round" class="metric-value">0</span>
+        </div>
+        <div class="metric">
+          <label>Players</label>
+          <span id="players" class="metric-value">0</span>
+        </div>
+      </div>
+
+      <!-- Card Area -->
+      <div class="card-area">
+        <!-- Current Card -->
+        <div class="card-section">
+          <h3>Current Card</h3>
+          <div id="current-card" class="card">
+            <span id="current-value" class="card-value">?</span>
+            <span id="current-suit" class="card-suit">?</span>
+          </div>
+        </div>
+
+        <!-- vs -->
+        <div class="vs">VS</div>
+
+        <!-- Next Card (Hidden) -->
+        <div class="card-section">
+          <h3>Next Card</h3>
+          <div id="next-card" class="card hidden">
+            <span class="card-back">?</span>
+          </div>
+          <div id="revealed-card" class="card" style="display:none;">
+            <span id="next-value" class="card-value"></span>
+            <span id="next-suit" class="card-suit"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div class="game-status">
+        <span id="status" class="status-text">Place your prediction</span>
+      </div>
+    </div>
+
+    <!-- Betting Panel -->
+    <div class="betting-panel">
+      <h2>Make Your Bet</h2>
+
+      <div class="balance-box">
+        <span>Balance</span>
+        <span id="balance" class="balance-amount">0 KES</span>
+      </div>
+
+      <div class="form-group">
+        <label>Bet Amount</label>
+        <input type="number" id="bet-amount" placeholder="100" min="10" max="10000" class="input-field">
+      </div>
+
+      <div class="presets">
+        <button class="preset" data-amount="100">100</button>
+        <button class="preset" data-amount="500">500</button>
+        <button class="preset" data-amount="1000">1K</button>
+        <button class="preset" data-amount="5000">5K</button>
+      </div>
+
+      <div class="prediction-buttons">
+        <button id="higher-btn" class="btn btn-blue">📈 HIGHER</button>
+        <button id="lower-btn" class="btn btn-blue">📉 LOWER</button>
+      </div>
+
+      <div class="info-box">
+        <h4>How It Works</h4>
+        <ul>
+          <li>See current card</li>
+          <li>Predict higher or lower</li>
+          <li>Next card is revealed</li>
+          <li>Win if you're right!</li>
+          <li>Harder prediction = higher multiplier</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <h3>Recent Hands</h3>
+      <div id="recent-bets" class="bets-list">
+        <p class="empty">No bets yet</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <h3>Your Stats</h3>
+      <div class="stats-grid">
+        <div class="stat">
+          <span class="label">Wagered</span>
+          <span id="stat-wagered" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Winnings</span>
+          <span id="stat-won" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Wins</span>
+          <span id="stat-wins" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Losses</span>
+          <span id="stat-losses" class="value">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+<style>
+.hilo {
+  --primary: #8b5cf6;
+  --card-bg: #1a0f3d;
+  --card-red: #dc2626;
+  --card-black: #1f2937;
+}
+
+.card-display {
+  background: linear-gradient(135deg, #1a0f3d 0%, #2d1b69 50%, #3d2680 100%);
+  border: 2px solid #8b5cf6;
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+}
+
+.card-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+  min-height: 350px;
+}
+
+.card-section {
+  text-align: center;
+  flex: 1;
+  max-width: 150px;
+}
+
+.card-section h3 {
+  font-size: 0.9rem;
+  color: #a0a0a0;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.card {
+  width: 120px;
+  height: 170px;
+  border: 2px solid #8b5cf6;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2d1b69, #1a0f3d);
+  margin: 0 auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s;
+}
+
+.card.hidden {
+  background: linear-gradient(135deg, #4c1d95, #2d1b69);
+}
+
+.card-value {
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.card-suit {
+  font-size: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.card.red .card-value,
+.card.red .card-suit {
+  color: #dc2626;
+}
+
+.card.black .card-value,
+.card.black .card-suit {
+  color: #1f2937;
+}
+
+.card:hover:not(.hidden) {
+  transform: scale(1.05);
+  box-shadow: 0 12px 32px rgba(139, 92, 246, 0.5);
+}
+
+.card-back {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #8b5cf6;
+}
+
+.vs {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #8b5cf6;
+  text-transform: uppercase;
+  padding: 0 1rem;
+}
+
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.metric {
+  text-align: center;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+}
+
+.metric label {
+  display: block;
+  font-size: 0.8rem;
+  color: #a0a0a0;
+  margin-bottom: 0.5rem;
+}
+
+.metric-value {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #8b5cf6;
+}
+
+.game-status {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 6px;
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  margin-top: 1rem;
+}
+
+.status-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #8b5cf6;
+}
+
+.status-text.betting {
+  color: #fbbf24;
+}
+
+.status-text.revealed {
+  color: #10b981;
+  font-size: 1.2rem;
+}
+
+.status-text.won {
+  color: #10b981;
+  animation: pulse 0.5s;
+}
+
+.status-text.lost {
+  color: #ef4444;
+}
+
+.prediction-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.btn-blue {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  border: none;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-blue:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(139, 92, 246, 0.4);
+}
+
+.btn-blue:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.info-box {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1.5rem;
+}
+
+.info-box h4 {
+  color: #8b5cf6;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.info-box ul {
+  list-style: none;
+  font-size: 0.85rem;
+  color: #a0a0a0;
+  line-height: 1.6;
+}
+
+.info-box li:before {
+  content: "🎴 ";
+  margin-right: 0.5rem;
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.preset {
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.preset:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.bets-list {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+}
+
+.bet-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.bet-item.won { border-left: 3px solid #10b981; }
+.bet-item.lost { border-left: 3px solid #ef4444; }
+.bet-item .value { font-weight: 700; }
+.bet-item.won .value { color: #10b981; }
+.bet-item.lost .value { color: #ef4444; }
+</style>
+
+<script>
+const CARD_NAMES = {
+  2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: '10',
+  11: 'J', 12: 'Q', 13: 'K', 14: 'A'
+};
+
+const SUITS = ['♠', '♥', '♦', '♣'];
+
+function getCardColor(card) {
+  return card > 10 ? 'black' : Math.random() > 0.5 ? 'red' : 'black';
+}
+
+const gameState = {
+  round: 0,
+  status: 'waiting',
+  currentCard: null,
+  nextCard: null,
+  activeBet: null
+};
+
+const socket = io('/hi-lo-card');
+
+socket.on('connect', () => {
+  socket.emit('join_game');
+});
+
+socket.on('new_round', (data) => {
+  gameState.round = data.round_number;
+  gameState.currentCard = data.current_card;
+  gameState.nextCard = null;
+  gameState.status = 'betting';
+  gameState.activeBet = null;
+  
+  document.getElementById('round').textContent = gameState.round;
+  document.getElementById('status').textContent = '🎴 Place your prediction!';
+  document.getElementById('status').className = 'status-text betting';
+  
+  // Show current card
+  const currentEl = document.getElementById('current-card');
+  currentEl.className = `card ${getCardColor(gameState.currentCard)}`;
+  document.getElementById('current-value').textContent = CARD_NAMES[gameState.currentCard];
+  document.getElementById('current-suit').textContent = SUITS[Math.floor(Math.random() * 4)];
+  
+  // Hide next card
+  document.getElementById('next-card').style.display = 'block';
+  document.getElementById('revealed-card').style.display = 'none';
+  
+  // Enable buttons
+  document.getElementById('higher-btn').disabled = false;
+  document.getElementById('lower-btn').disabled = false;
+});
+
+socket.on('card_revealed', (data) => {
+  gameState.nextCard = data.next_card;
+  gameState.status = 'revealed';
+  
+  const nextEl = document.getElementById('revealed-card');
+  nextEl.className = `card ${getCardColor(gameState.nextCard)}`;
+  document.getElementById('next-value').textContent = CARD_NAMES[gameState.nextCard];
+  document.getElementById('next-suit').textContent = SUITS[Math.floor(Math.random() * 4)];
+  
+  document.getElementById('next-card').style.display = 'none';
+  document.getElementById('revealed-card').style.display = 'flex';
+  
+  document.getElementById('higher-btn').disabled = true;
+  document.getElementById('lower-btn').disabled = true;
+  
+  // Show result
+  updateStatus();
+});
+
+socket.on('player_joined', (data) => {
+  document.getElementById('players').textContent = data.players;
+});
+
+function updateStatus() {
+  const status = document.getElementById('status');
+  
+  if (!gameState.activeBet || gameState.status !== 'revealed') {
+    status.textContent = '🎴 Next round...';
+    return;
+  }
+  
+  const current = gameState.currentCard;
+  const next = gameState.nextCard;
+  const prediction = gameState.activeBet.prediction;
+  
+  let result = '';
+  let won = false;
+  
+  if (prediction === 'higher') {
+    result = next > current ? 'You predicted HIGHER and won! ✅' : 'You predicted HIGHER but lost ❌';
+    won = next > current;
+  } else {
+    result = next < current ? 'You predicted LOWER and won! ✅' : 'You predicted LOWER but lost ❌';
+    won = next < current;
+  }
+  
+  status.textContent = result;
+  status.className = 'status-text ' + (won ? 'won' : 'lost');
+}
+
+document.getElementById('higher-btn').addEventListener('click', async () => {
+  await placeBet('higher');
+});
+
+document.getElementById('lower-btn').addEventListener('click', async () => {
+  await placeBet('lower');
+});
+
+async function placeBet(prediction) {
+  const amount = parseFloat(document.getElementById('bet-amount').value);
+  if (!amount) {
+    alert('Enter a bet amount');
+    return;
+  }
+  
+  const res = await fetch('/hi-lo-card/api/bet', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount, prediction })
+  });
+  
+  const data = await res.json();
+  if (data.success) {
+    gameState.activeBet = {
+      id: data.bet_id,
+      amount: amount,
+      prediction: prediction
+    };
+    document.getElementById('bet-amount').value = '';
+    document.getElementById('higher-btn').disabled = true;
+    document.getElementById('lower-btn').disabled = true;
+  } else {
+    alert(data.error);
+  }
+}
+
+document.querySelectorAll('.preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('bet-amount').value = btn.dataset.amount;
+  });
+});
+
+fetch('/hi-lo-card/api/stats')
+  .then(r => r.json())
+  .then(s => {
+    document.getElementById('stat-wagered').textContent = s.total_wagered.toLocaleString();
+    document.getElementById('stat-won').textContent = s.total_won.toLocaleString();
+    document.getElementById('stat-wins').textContent = s.win_count;
+    document.getElementById('stat-losses').textContent = s.loss_count;
+  });
+
+fetch('/hi-lo-card/api/history?limit=10')
+  .then(r => r.json())
+  .then(bets => {
+    const list = document.getElementById('recent-bets');
+    if (bets.length) {
+      list.innerHTML = bets.map(b => `
+        <div class="bet-item ${b.status}">
+          <span>${b.prediction.toUpperCase()} - ${b.amount} KES</span>
+          <span class="value">${b.payout ? '+' + b.payout.toLocaleString() : 'Lost'}</span>
+        </div>
+      `).join('');
+    }
+  });
+</script>
+{% endblock %}
