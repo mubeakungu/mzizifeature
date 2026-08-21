@@ -1,559 +1,454 @@
 {% extends "base.html" %}
 
-{% block title %}mzizicrash - Mzizibet{% endblock %}
-
 {% block content %}
-<div class="crash-wrap">
-  <div class="game-container">
-    <h1>🚀 mzizicrash <span id="round-number" class="round-tag">#0</span></h1>
-
-    <div class="game-screen">
-      <div class="multiplier" id="current-multiplier">1.00x</div>
-      <div class="crashed" id="crashed-text"></div>
-      <div class="cashed-out" id="cashedout-text"></div>
-      <div class="status-pill" id="status-text">Connecting to game...</div>
+<div class="min-h-screen bg-gradient-to-br from-gray-950 via-black to-gray-900 p-4 md:p-6 flex flex-col">
+    
+    <!-- Header -->
+    <div class="max-w-4xl mx-auto w-full mb-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="/games" class="text-gray-400 hover:text-white transition">← Games</a>
+                <div class="w-1 h-6 bg-gray-600"></div>
+                <h1 class="text-2xl md:text-3xl font-bold text-orange-400">🚀 Crash</h1>
+            </div>
+            <div class="text-right">
+                <p class="text-gray-400 text-sm">Balance</p>
+                <p class="text-xl font-bold text-green-400" id="balance">KSh 0.00</p>
+            </div>
+        </div>
     </div>
 
-    <div class="game-info">
-      <div>Balance: <span id="balance">{{ balance }}</span> KES</div>
-      <div>Players: <span id="player-count">0</span></div>
+    <!-- Main Game Container -->
+    <div class="flex-1 flex flex-col md:flex-row gap-6 max-w-6xl mx-auto w-full">
+        
+        <!-- Game Area -->
+        <div class="flex-1 flex flex-col gap-6">
+            
+            <!-- Crash Graph Card -->
+            <div class="bg-black/50 border border-orange-500/20 rounded-2xl overflow-hidden backdrop-blur">
+                <div class="bg-gradient-to-b from-orange-600/10 to-transparent p-6 md:p-8">
+                    <h2 class="text-lg font-semibold text-orange-400 mb-4">Live Crash Chart</h2>
+                    
+                    <!-- Graph Container -->
+                    <div class="relative w-full h-96 bg-black/80 rounded-lg border border-orange-500/20 overflow-hidden flex items-center justify-center">
+                        
+                        <!-- Grid Background -->
+                        <div class="absolute inset-0 opacity-10">
+                            <svg class="w-full h-full" preserveAspectRatio="none">
+                                <defs>
+                                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="0.5"/>
+                                    </pattern>
+                                </defs>
+                                <rect width="100%" height="100%" fill="url(#grid)" />
+                            </svg>
+                        </div>
+
+                        <!-- Crash Graph Line -->
+                        <svg id="crashGraph" class="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+                            <path id="graphPath" d="M 0 400 L 0 400" fill="none" stroke="#f97316" stroke-width="3" 
+                                  style="filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.8));" />
+                            <!-- Crash point indicator -->
+                            <circle id="crashPoint" cx="0" cy="400" r="6" fill="none" stroke="#ef4444" stroke-width="2" style="opacity: 0;" />
+                        </svg>
+
+                        <!-- Multiplier Display -->
+                        <div class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                            <div class="text-center">
+                                <div id="multiplierDisplay" class="text-7xl md:text-8xl font-bold font-mono tracking-tighter text-white drop-shadow-[0_0_20px_rgba(249,115,22,0.5)]">
+                                    1.00x
+                                </div>
+                                <div id="gameStatus" class="text-lg md:text-xl font-semibold text-gray-400 mt-4">
+                                    Ready to play
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Crash Overlay -->
+                        <div id="crashOverlay" class="absolute inset-0 bg-red-600/20 opacity-0 transition-opacity duration-300 pointer-events-none"></div>
+
+                    </div>
+
+                    <!-- Game Info -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-orange-500/10">
+                        <div>
+                            <p class="text-gray-500 text-sm">Current Multiplier</p>
+                            <p id="currentMult" class="text-2xl font-bold text-orange-400">1.00x</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Your Bet</p>
+                            <p id="betDisplay" class="text-2xl font-bold text-green-400">KSh 0</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Potential Win</p>
+                            <p id="winDisplay" class="text-2xl font-bold text-blue-400">KSh 0</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Crash Point</p>
+                            <p id="crashPointDisplay" class="text-2xl font-bold text-red-400">—</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Status and Messages -->
+            <div id="gameMessages" class="space-y-2 hidden">
+                <div id="message" class="bg-black/50 border border-orange-500/30 rounded-lg p-4 text-orange-400 text-center font-semibold"></div>
+            </div>
+
+        </div>
+
+        <!-- Right Sidebar - Bet Controls -->
+        <div class="w-full md:w-80 flex flex-col gap-6">
+            
+            <!-- Bet Control Card -->
+            <div class="bg-black/50 border border-orange-500/20 rounded-2xl p-6 backdrop-blur">
+                <h3 class="text-lg font-semibold text-white mb-4">Place Your Bet</h3>
+                
+                <!-- Bet Amount Input -->
+                <div class="space-y-2 mb-4">
+                    <label class="text-gray-400 text-sm">Bet Amount (KSh)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-500">KSh</span>
+                        <input 
+                            type="number" 
+                            id="betAmount" 
+                            min="10" 
+                            step="10" 
+                            value="100"
+                            class="w-full pl-12 pr-4 py-3 bg-black/80 border border-orange-500/20 rounded-lg text-white focus:outline-none focus:border-orange-500 transition"
+                        />
+                    </div>
+                </div>
+
+                <!-- Bet Presets -->
+                <div class="grid grid-cols-2 gap-2 mb-6">
+                    <button onclick="setBet(50)" class="px-3 py-2 bg-black/80 border border-gray-600/30 rounded text-gray-300 hover:border-orange-500/50 transition text-sm">50</button>
+                    <button onclick="setBet(100)" class="px-3 py-2 bg-black/80 border border-gray-600/30 rounded text-gray-300 hover:border-orange-500/50 transition text-sm">100</button>
+                    <button onclick="setBet(500)" class="px-3 py-2 bg-black/80 border border-gray-600/30 rounded text-gray-300 hover:border-orange-500/50 transition text-sm">500</button>
+                    <button onclick="setBet(1000)" class="px-3 py-2 bg-black/80 border border-gray-600/30 rounded text-gray-300 hover:border-orange-500/50 transition text-sm">1000</button>
+                </div>
+
+                <!-- Start/Cashout Button -->
+                <button 
+                    id="playButton" 
+                    onclick="startGame()"
+                    class="w-full py-3 px-4 rounded-lg font-bold text-lg transition duration-300 mb-2"
+                    style="background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);"
+                >
+                    Place Bet
+                </button>
+
+                <button 
+                    id="cashoutButton" 
+                    onclick="cashOut()"
+                    class="w-full py-4 px-4 rounded-lg font-bold text-xl transition duration-300 hidden"
+                    style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);"
+                >
+                    CASH OUT
+                </button>
+
+                <!-- Auto Cashout -->
+                <div class="mt-4 pt-4 border-t border-gray-700/30">
+                    <label class="text-gray-400 text-sm flex items-center gap-2 mb-2">
+                        <input type="checkbox" id="autoCashout" class="rounded">
+                        Auto Cashout at Multiplier
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="number" 
+                            id="autoCashoutValue" 
+                            min="1.01" 
+                            step="0.1" 
+                            value="2.0"
+                            class="w-full px-3 py-2 bg-black/80 border border-gray-600/30 rounded text-white focus:outline-none focus:border-orange-500 transition text-sm"
+                        />
+                        <span class="absolute right-3 top-2 text-gray-500 text-sm">x</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Card -->
+            <div class="bg-black/50 border border-gray-600/20 rounded-2xl p-6 backdrop-blur">
+                <h3 class="text-lg font-semibold text-white mb-4">Session Stats</h3>
+                
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-gray-400 text-xs">Total Wagered</p>
+                        <p id="totalWagered" class="text-lg font-semibold text-gray-300">KSh 0.00</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400 text-xs">Total Won</p>
+                        <p id="totalWon" class="text-lg font-semibold text-green-400">KSh 0.00</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400 text-xs">Total Lost</p>
+                        <p id="totalLost" class="text-lg font-semibold text-red-400">KSh 0.00</p>
+                    </div>
+                    <div class="border-t border-gray-700/30 pt-3">
+                        <p class="text-gray-400 text-xs">Profit/Loss</p>
+                        <p id="profitLoss" class="text-lg font-semibold text-blue-400">KSh 0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Card -->
+            <div class="bg-black/30 border border-gray-700/20 rounded-lg p-4">
+                <h4 class="text-white font-semibold mb-2 text-sm">How to Play</h4>
+                <ul class="text-gray-400 text-xs space-y-1">
+                    <li>• Place your bet</li>
+                    <li>• Watch the multiplier grow</li>
+                    <li>• Click CASH OUT before crash</li>
+                    <li>• Too late = you lose</li>
+                </ul>
+            </div>
+
+        </div>
+
     </div>
 
-    <div class="bet-section">
-      <div class="input-group">
-        <label>Bet Amount (KES)</label>
-        <input type="number" id="bet-amount" placeholder="100" min="10" max="10000" value="100">
-      </div>
-      <div class="input-group">
-        <label>Auto Cashout</label>
-        <input type="number" id="auto-cashout-multiplier" placeholder="e.g. 2.50" min="1.01" max="500" step="0.01">
-      </div>
-      <button id="bet-button" onclick="placeBet()">Place Bet</button>
-      <button id="cashout-button" onclick="cashout()" disabled style="display:none;">Cash Out</button>
-    </div>
-
-    <div class="bet-presets">
-      <button class="preset-btn" data-amount="50">50</button>
-      <button class="preset-btn" data-amount="100">100</button>
-      <button class="preset-btn" data-amount="500">500</button>
-      <button class="preset-btn" data-amount="1000">1K</button>
-      <button class="preset-btn" data-amount="5000">5K</button>
-    </div>
-
-    <div class="history">
-      <h3>Round History</h3>
-      <div id="history-list" class="history-list">
-        <p class="empty-state">No rounds yet this session</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="stats-row">
-    <div class="stat-card">
-      <h3>Your Recent Bets</h3>
-      <div id="recent-bets" class="bets-list">
-        <p class="empty-state">No bets yet</p>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <h3>Your Statistics</h3>
-      <div class="stats-grid">
-        <div class="stat-item"><span class="label">Total Wagered</span><span id="stat-total-wagered" class="value">0 KES</span></div>
-        <div class="stat-item"><span class="label">Total Won</span><span id="stat-total-won" class="value">0 KES</span></div>
-        <div class="stat-item"><span class="label">Wins</span><span id="stat-wins" class="value">0</span></div>
-        <div class="stat-item"><span class="label">Losses</span><span id="stat-losses" class="value">0</span></div>
-        <div class="stat-item"><span class="label">Best Multiplier</span><span id="stat-best-multiplier" class="value">-</span></div>
-      </div>
-    </div>
-  </div>
 </div>
 
-<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
+    @keyframes crash {
+        0% { stroke: #f97316; }
+        50% { stroke: #ef4444; filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.8)); }
+        100% { stroke: #dc2626; }
+    }
 
-.crash-wrap {
-  font-family: "Arial", sans-serif;
-  background-color: #1a1a1a;
-  color: white;
-  padding: 20px 0 40px;
-}
+    #graphPath.crashed {
+        animation: crash 0.6s ease-out;
+    }
 
-.game-container {
-  width: 90%;
-  max-width: 800px;
-  margin: 0 auto 30px;
-  padding: 20px;
-  background: #222;
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
-}
+    @keyframes pulse-crash {
+        0%, 100% { opacity: 0; }
+        50% { opacity: 1; }
+    }
 
-.game-container h1 {
-  text-align: center;
-  margin-bottom: 16px;
-}
+    #crashOverlay.show {
+        opacity: 1 !important;
+    }
 
-.round-tag {
-  font-size: 0.9rem;
-  color: #888;
-  font-weight: normal;
-}
-
-.game-screen {
-  width: 100%;
-  min-height: 300px;
-  background: #333;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  position: relative;
-  overflow: hidden;
-  padding: 20px;
-  gap: 10px;
-}
-
-.multiplier {
-  font-size: 48px;
-  font-weight: bold;
-  color: #ffcc00;
-  transition: transform 0.1s ease-in-out;
-}
-
-.multiplier.live {
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-.crashed {
-  color: #ff3b3b;
-  font-size: 22px;
-  font-weight: bold;
-  min-height: 28px;
-}
-
-.cashed-out {
-  color: #22c55e;
-  font-size: 18px;
-  font-weight: bold;
-  min-height: 24px;
-}
-
-.status-pill {
-  font-size: 14px;
-  color: #aaa;
-  background: rgba(255,255,255,0.05);
-  padding: 6px 14px;
-  border-radius: 20px;
-  margin-top: 6px;
-}
-
-.status-pill.betting { color: #f59e0b; }
-.status-pill.live { color: #22c55e; }
-.status-pill.crashed { color: #ff3b3b; }
-
-.game-info {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  margin: 0 0 20px;
-  font-size: 16px;
-  background: #444;
-  padding: 12px 16px;
-  border-radius: 10px;
-}
-
-.bet-section {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 10px;
-  margin-bottom: 14px;
-  background: #444;
-  padding: 15px;
-  border-radius: 10px;
-}
-
-.bet-section .input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-width: 140px;
-}
-
-.bet-section label {
-  font-size: 12px;
-  color: #bbb;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-input, button {
-  padding: 12px;
-  font-size: 16px;
-  border: none;
-  border-radius: 5px;
-}
-
-input {
-  width: 100%;
-  background: #2a2a2a;
-  color: white;
-  border: 1px solid #555;
-}
-
-button {
-  background: linear-gradient(135deg, #ff5733, #ff1a1a);
-  color: white;
-  cursor: pointer;
-  transition: 0.2s;
-  font-weight: 700;
-  min-width: 140px;
-}
-
-button:hover:not(:disabled) {
-  transform: scale(1.05);
-}
-
-button:disabled {
-  background: #888;
-  cursor: not-allowed;
-}
-
-#cashout-button {
-  background: linear-gradient(135deg, #22c55e, #059669);
-}
-
-.bet-presets {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.preset-btn {
-  padding: 10px 5px;
-  background: #333;
-  border: 1px solid #555;
-  font-size: 14px;
-  min-width: 0;
-}
-
-.preset-btn:hover {
-  background: #ff5733;
-}
-
-.history, .stat-card {
-  background: #333;
-  padding: 15px;
-  border-radius: 10px;
-  margin-top: 20px;
-}
-
-.history h3, .stat-card h3 {
-  margin: 0 0 10px;
-  border-bottom: 2px solid #555;
-  padding-bottom: 8px;
-}
-
-.history-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-}
-
-.history-item {
-  background: #444;
-  padding: 8px 12px;
-  border-radius: 5px;
-  font-size: 15px;
-  color: #ffcc00;
-  font-weight: 600;
-}
-
-.history-item.low { color: #ff6b6b; }
-.history-item.high { color: #22c55e; }
-
-.empty-state {
-  text-align: center;
-  color: #888;
-  padding: 10px;
-}
-
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-  width: 90%;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.bets-list {
-  max-height: 260px;
-  overflow-y: auto;
-}
-
-.bet-item {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: #444;
-  border-radius: 6px;
-  margin-bottom: 0.75rem;
-  font-size: 0.9rem;
-}
-
-.bet-item span { display: flex; justify-content: space-between; }
-.bet-item .label { color: #aaa; }
-.bet-item .value { font-weight: 600; }
-.bet-item.won .value { color: #22c55e; }
-.bet-item.lost .value { color: #ff6b6b; }
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.stat-item {
-  background: #444;
-  padding: 12px;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-}
-
-.stat-item .label { font-size: 0.75rem; color: #aaa; margin-bottom: 4px; }
-.stat-item .value { font-size: 1.2rem; font-weight: 700; color: #ffcc00; }
-
-@media (max-width: 500px) {
-  .game-info { flex-direction: column; gap: 8px; }
-  .bet-section { flex-direction: column; }
-  .bet-section .input-group { width: 100%; }
-  button { width: 100%; }
-}
+    #multiplierDisplay.crash-text {
+        animation: pulse-crash 0.6s ease-out;
+        color: #ef4444;
+    }
 </style>
 
 <script>
-  const socket = io('/crash');
-  let gameState = {
-    currentMultiplier: 1.0,
-    roundNumber: 0,
-    playersCount: 0,
-    status: 'pending',
-    isBetting: false,
-    hasBet: false,
-    balance: {{ balance }},
-    autoCashoutValue: null
-  };
+    let gameState = {
+        isPlaying: false,
+        multiplier: 1.00,
+        crashed: false,
+        serverCrashPoint: null,
+        gameId: null,
+        startTime: null,
+        animationId: null,
+        balance: 0
+    };
 
-  let roundHistory = [];
+    let stats = {
+        totalWagered: 0,
+        totalWon: 0,
+        totalLost: 0
+    };
 
-  document.querySelectorAll('.preset-btn').forEach(btn => {
-    btn.addEventListener('click', function () {
-      document.getElementById('bet-amount').value = this.dataset.amount;
+    // Load initial balance
+    async function loadBalance() {
+        try {
+            const response = await fetch('/api/balance');
+            const data = await response.json();
+            gameState.balance = data.balance;
+            document.getElementById('balance').textContent = `KSh ${data.balance.toFixed(2)}`;
+        } catch (error) {
+            console.error('Error loading balance:', error);
+        }
+    }
+
+    function setBet(amount) {
+        document.getElementById('betAmount').value = amount;
+    }
+
+    function updateDisplay() {
+        const betAmount = parseFloat(document.getElementById('betAmount').value) || 0;
+        const multiplier = gameState.multiplier;
+        const potentialWin = (betAmount * multiplier).toFixed(2);
+
+        document.getElementById('multiplierDisplay').textContent = `${multiplier.toFixed(2)}x`;
+        document.getElementById('currentMult').textContent = `${multiplier.toFixed(2)}x`;
+        document.getElementById('betDisplay').textContent = `KSh ${betAmount.toFixed(0)}`;
+        document.getElementById('winDisplay').textContent = `KSh ${potentialWin}`;
+    }
+
+    function updateGraph() {
+        if (!gameState.isPlaying) return;
+
+        const now = Date.now();
+        const elapsed = (now - gameState.startTime) / 1000;
+        const multiplier = Math.pow(Math.E, 0.15 * elapsed);
+
+        gameState.multiplier = multiplier;
+
+        // Update graph path
+        const svg = document.getElementById('crashGraph');
+        const path = document.getElementById('graphPath');
+        const width = svg.clientWidth;
+        const height = svg.clientHeight;
+
+        const x = Math.min((elapsed / 10) * width, width);
+        const y = Math.max(height - (multiplier * 20), 0);
+
+        path.setAttribute('d', `M 0 ${height} L ${x} ${y}`);
+
+        updateDisplay();
+
+        if (gameState.crashed) return;
+
+        if (gameState.serverCrashPoint && multiplier >= gameState.serverCrashPoint) {
+            handleCrash();
+        } else {
+            gameState.animationId = requestAnimationFrame(updateGraph);
+        }
+    }
+
+    async function startGame() {
+        const betAmount = parseFloat(document.getElementById('betAmount').value);
+
+        if (isNaN(betAmount) || betAmount <= 0) {
+            alert('Enter a valid bet amount');
+            return;
+        }
+
+        if (betAmount > gameState.balance) {
+            alert('Insufficient balance');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/games/crash/play', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ betAmount })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            gameState.gameId = data.gameId;
+            gameState.serverCrashPoint = data.crashPoint;
+            gameState.isPlaying = true;
+            gameState.crashed = false;
+            gameState.multiplier = 1.00;
+            gameState.startTime = Date.now();
+
+            stats.totalWagered += betAmount;
+
+            document.getElementById('playButton').classList.add('hidden');
+            document.getElementById('cashoutButton').classList.remove('hidden');
+            document.getElementById('gameStatus').textContent = 'Playing...';
+            document.getElementById('crashPointDisplay').textContent = `${gameState.serverCrashPoint.toFixed(2)}x`;
+
+            updateGraph();
+        } catch (error) {
+            alert('Error starting game: ' + error.message);
+        }
+    }
+
+    async function cashOut() {
+        if (!gameState.isPlaying || gameState.crashed) return;
+
+        cancelAnimationFrame(gameState.animationId);
+        gameState.isPlaying = false;
+        const multiplier = gameState.multiplier;
+        const betAmount = parseFloat(document.getElementById('betAmount').value);
+
+        try {
+            const response = await fetch('/api/games/crash/cashout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gameId: gameState.gameId, multiplier })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            const winAmount = data.payout;
+            const profit = winAmount - betAmount;
+
+            gameState.balance += profit;
+            stats.totalWon += winAmount;
+
+            document.getElementById('balance').textContent = `KSh ${gameState.balance.toFixed(2)}`;
+            document.getElementById('gameStatus').textContent = `Cashed out @ ${multiplier.toFixed(2)}x! Won KSh ${winAmount.toFixed(2)}`;
+            document.getElementById('gameStatus').classList.add('text-green-400');
+
+            resetGame();
+        } catch (error) {
+            alert('Cashout error: ' + error.message);
+        }
+    }
+
+    function handleCrash() {
+        gameState.crashed = true;
+        gameState.isPlaying = false;
+        cancelAnimationFrame(gameState.animationId);
+
+        const betAmount = parseFloat(document.getElementById('betAmount').value);
+        stats.totalLost += betAmount;
+        gameState.balance -= betAmount;
+
+        document.getElementById('balance').textContent = `KSh ${gameState.balance.toFixed(2)}`;
+        document.getElementById('multiplierDisplay').classList.add('crash-text');
+        document.getElementById('crashOverlay').classList.add('show');
+        document.getElementById('gameStatus').textContent = `Crashed @ ${gameState.multiplier.toFixed(2)}x - You lost KSh ${betAmount.toFixed(0)}`;
+        document.getElementById('gameStatus').classList.add('text-red-400');
+
+        document.getElementById('graphPath').classList.add('crashed');
+        document.getElementById('crashPoint').style.opacity = '1';
+
+        setTimeout(resetGame, 2000);
+    }
+
+    function resetGame() {
+        gameState.crashed = false;
+        gameState.multiplier = 1.00;
+        gameState.gameId = null;
+        gameState.serverCrashPoint = null;
+
+        document.getElementById('playButton').classList.remove('hidden');
+        document.getElementById('cashoutButton').classList.add('hidden');
+        document.getElementById('multiplierDisplay').classList.remove('crash-text');
+        document.getElementById('crashOverlay').classList.remove('show');
+        document.getElementById('gameStatus').classList.remove('text-green-400', 'text-red-400');
+        document.getElementById('gameStatus').textContent = 'Ready to play';
+        document.getElementById('crashPointDisplay').textContent = '—';
+        document.getElementById('graphPath').classList.remove('crashed');
+
+        // Reset graph
+        const svg = document.getElementById('crashGraph');
+        const path = document.getElementById('graphPath');
+        path.setAttribute('d', `M 0 ${svg.clientHeight} L 0 ${svg.clientHeight}`);
+
+        updateDisplay();
+        updateStats();
+    }
+
+    function updateStats() {
+        document.getElementById('totalWagered').textContent = `KSh ${stats.totalWagered.toFixed(2)}`;
+        document.getElementById('totalWon').textContent = `KSh ${stats.totalWon.toFixed(2)}`;
+        document.getElementById('totalLost').textContent = `KSh ${stats.totalLost.toFixed(2)}`;
+        const profitLoss = stats.totalWon - stats.totalWagered;
+        document.getElementById('profitLoss').textContent = `KSh ${profitLoss.toFixed(2)}`;
+        document.getElementById('profitLoss').style.color = profitLoss >= 0 ? '#22c55e' : '#ef4444';
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        loadBalance();
+        updateDisplay();
     });
-  });
-
-  socket.on('connect', () => {
-    updateStatus('Waiting for round...', null);
-  });
-
-  socket.on('new_round', (data) => {
-    gameState.roundNumber = data.round_number;
-    gameState.isBetting = true;
-    gameState.hasBet = false;
-
-    document.getElementById('round-number').textContent = '#' + data.round_number;
-    document.getElementById('current-multiplier').textContent = '1.00x';
-    document.getElementById('current-multiplier').classList.remove('live');
-    document.getElementById('crashed-text').textContent = '';
-    document.getElementById('cashedout-text').textContent = '';
-    document.getElementById('bet-button').disabled = false;
-    document.getElementById('bet-button').style.display = 'block';
-    document.getElementById('cashout-button').style.display = 'none';
-
-    updateStatus(`Betting window open (${data.betting_window}s)`, 'betting');
-  });
-
-  socket.on('game_start', () => {
-    gameState.isBetting = false;
-    gameState.status = 'live';
-    document.getElementById('bet-button').disabled = true;
-    document.getElementById('current-multiplier').classList.add('live');
-    updateStatus('Game live! Multiplier growing...', 'live');
-  });
-
-  socket.on('multiplier_update', (data) => {
-    gameState.currentMultiplier = data.multiplier;
-    document.getElementById('current-multiplier').textContent = data.multiplier.toFixed(2) + 'x';
-
-    if (gameState.hasBet && gameState.autoCashoutValue && data.multiplier >= gameState.autoCashoutValue) {
-      cashout();
-    }
-  });
-
-  socket.on('game_crashed', (data) => {
-    gameState.status = 'crashed';
-    document.getElementById('current-multiplier').classList.remove('live');
-    document.getElementById('current-multiplier').textContent = data.crash_point.toFixed(2) + 'x';
-    document.getElementById('crashed-text').textContent = `💥 Crashed at ${data.crash_point.toFixed(2)}x`;
-
-    updateStatus(`Round #${data.round_number} crashed`, 'crashed');
-    addToHistory(data.crash_point);
-
-    if (gameState.hasBet) {
-      document.getElementById('cashout-button').style.display = 'none';
-      document.getElementById('bet-button').style.display = 'block';
-      gameState.hasBet = false;
-      loadStats();
-    }
-  });
-
-  socket.on('player_joined', (data) => {
-    gameState.playersCount = data.players;
-    document.getElementById('player-count').textContent = data.players;
-  });
-
-  socket.on('current_state', (data) => {
-    gameState.roundNumber = data.round_number;
-    gameState.playersCount = data.players_count;
-    gameState.currentMultiplier = data.live_multiplier;
-    gameState.isBetting = data.is_betting;
-    gameState.status = data.status;
-
-    document.getElementById('round-number').textContent = '#' + (data.round_number || '--');
-    document.getElementById('player-count').textContent = data.players_count;
-    document.getElementById('current-multiplier').textContent = data.live_multiplier.toFixed(2) + 'x';
-  });
-
-  function placeBet() {
-    const amount = parseFloat(document.getElementById('bet-amount').value);
-    gameState.autoCashoutValue = parseFloat(document.getElementById('auto-cashout-multiplier').value) || null;
-
-    if (!amount || amount < 10 || amount > 10000) {
-      alert('Bet amount must be between 10 and 10,000 KES');
-      return;
-    }
-    if (!gameState.isBetting) {
-      alert('Betting window is closed');
-      return;
-    }
-
-    fetch('/crash/api/bet', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount })
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          gameState.hasBet = true;
-          gameState.balance = data.balance;
-          document.getElementById('balance').textContent = gameState.balance.toFixed(2);
-          document.getElementById('bet-button').style.display = 'none';
-          document.getElementById('cashout-button').style.display = 'block';
-          document.getElementById('cashout-button').disabled = false;
-          updateStatus('Bet placed! Watch the multiplier...', 'betting');
-        } else {
-          alert('Error: ' + data.error);
-        }
-      })
-      .catch(err => console.error('Bet error:', err));
-  }
-
-  function cashout() {
-    fetch('/crash/api/cashout', { method: 'POST' })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          gameState.hasBet = false;
-          gameState.balance = data.balance;
-          document.getElementById('balance').textContent = gameState.balance.toFixed(2);
-          document.getElementById('cashout-button').style.display = 'none';
-          document.getElementById('bet-button').style.display = 'block';
-          document.getElementById('cashedout-text').textContent = `You cashed out at ${data.payout ? gameState.currentMultiplier.toFixed(2) : ''}x! +${data.profit.toFixed(2)} KES`;
-          loadStats();
-          loadBetHistory();
-        } else {
-          alert('Error: ' + data.error);
-        }
-      })
-      .catch(err => console.error('Cashout error:', err));
-  }
-
-  function updateStatus(message, cls) {
-    const el = document.getElementById('status-text');
-    el.textContent = message;
-    el.classList.remove('betting', 'live', 'crashed');
-    if (cls) el.classList.add(cls);
-  }
-
-  function addToHistory(crashPoint) {
-    roundHistory.unshift(crashPoint);
-    if (roundHistory.length > 15) roundHistory.pop();
-
-    const container = document.getElementById('history-list');
-    container.innerHTML = roundHistory.map(v => {
-      const cls = v < 2 ? 'low' : (v >= 10 ? 'high' : '');
-      return `<div class="history-item ${cls}">${v.toFixed(2)}x</div>`;
-    }).join('');
-  }
-
-  function loadStats() {
-    fetch('/crash/api/stats')
-      .then(r => r.json())
-      .then(data => {
-        document.getElementById('stat-total-wagered').textContent = data.total_wagered.toFixed(2) + ' KES';
-        document.getElementById('stat-total-won').textContent = data.total_won.toFixed(2) + ' KES';
-        document.getElementById('stat-wins').textContent = data.win_count;
-        document.getElementById('stat-losses').textContent = data.loss_count;
-        document.getElementById('stat-best-multiplier').textContent = data.best_multiplier > 0 ? data.best_multiplier.toFixed(2) + 'x' : '-';
-      })
-      .catch(err => console.error('Stats error:', err));
-  }
-
-  function loadBetHistory() {
-    fetch('/crash/api/history?limit=5')
-      .then(r => r.json())
-      .then(bets => {
-        const container = document.getElementById('recent-bets');
-        if (bets.length === 0) {
-          container.innerHTML = '<p class="empty-state">No bets yet</p>';
-          return;
-        }
-        container.innerHTML = bets.map(bet => `
-          <div class="bet-item ${bet.status === 'cashed_out' ? 'won' : 'lost'}">
-            <span>
-              <span class="label">Round #${bet.round}</span>
-              <span class="value">${bet.amount.toFixed(2)} KES</span>
-            </span>
-            <span>
-              <span class="label">${bet.status === 'cashed_out' ? 'Cashed out at' : 'Crashed at'}</span>
-              <span class="value">${bet.cashout_at ? bet.cashout_at.toFixed(2) + 'x' : '-'}</span>
-            </span>
-          </div>
-        `).join('');
-      })
-      .catch(err => console.error('History error:', err));
-  }
-
-  loadStats();
-  loadBetHistory();
-  socket.emit('request_current_state');
 </script>
+
 {% endblock %}
